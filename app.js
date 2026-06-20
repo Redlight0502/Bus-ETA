@@ -1,6 +1,6 @@
 let monitorDataCache = null;
 
-// 從九巴 API 獲取資料
+// 從 KMB API 獲取資料
 async function fetchBusETA(stopId, route) {
     try {
         const response = await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/${stopId}`);
@@ -12,7 +12,7 @@ async function fetchBusETA(stopId, route) {
     }
 }
 
-// 核心資料更新（不再處理倒數，單純抓取網路數據）
+// 核心資料更新（每 30 秒默默在背景抓取一次）
 async function refreshDataFromAPI() {
     const stationGroups = [
         {
@@ -42,12 +42,12 @@ async function refreshDataFromAPI() {
     monitorDataCache = newData;
 }
 
-// 核心大腦與畫面渲染
+// 核心大腦：尋車、時間線過濾、動態排序與界面渲染
 function renderInterface() {
     const appContainer = document.getElementById('app');
     if (!monitorDataCache) return;
 
-    // ================== 🧠 智能對接與尋車 ==================
+    // ================== 🧠 智慧對接與尋車 ==================
     let myCarArrivalAtShingMunTime = null;
     let shingMunMy46XEtaString = null; 
 
@@ -61,7 +61,7 @@ function renderInterface() {
         if (yk46xRoute && yk46xRoute.busData[0] && sm46xRoute && sm46xRoute.busData) {
             const ykFirstBusEta = new Date(yk46xRoute.busData[0].eta).getTime();
             
-            // 動態追蹤：日景樓開出時間 + 13分鐘合理車程
+            // 精準定位：日景樓開出時間 + 13 分鐘合理車程
             const estimatedShingMunTime = ykFirstBusEta + (13 * 60 * 1000); 
 
             let minDiff = Infinity;
@@ -71,7 +71,7 @@ function renderInterface() {
                 if (bus.eta) {
                     const busTime = new Date(bus.eta).getTime();
                     const diff = Math.abs(busTime - estimatedShingMunTime);
-                    // 必須比日景樓到站時間晚，才是你正坐在上面的那班車
+                    // 必須比日景樓到站時間晚，才是你正坐在上面的那一班 46X
                     if (diff < minDiff && busTime > ykFirstBusEta) {
                         minDiff = diff;
                         targetBus = bus;
@@ -88,7 +88,7 @@ function renderInterface() {
         }
     }
 
-    // 🏎️ 轉乘爭霸賽：只塞入真正有效的「未來班次」
+    // 🏎️ 轉乘爭霸賽：過濾並鎖定未來有效的班次
     let validTransferBuses = [];
     const myTargetTime = myCarArrivalAtShingMunTime ? myCarArrivalAtShingMunTime.getTime() : 0;
 
@@ -113,7 +113,7 @@ function renderInterface() {
         });
     }
 
-    // 排序有效班次：近的在前
+    // 全局轉乘班次排序：找出趕得上且最快的前兩名
     validTransferBuses.sort((a, b) => a.time - b.time);
     let globalRedBus = validTransferBuses[0] || null;
     let globalYellowBus = validTransferBuses[1] || null;
@@ -134,10 +134,10 @@ function renderInterface() {
         const sm46xData = shingMunGroup.routesData.filter(r => r.route === '46X');
         const transferRoutesData = shingMunGroup.routesData.filter(r => ['48X', '269D', '40X'].includes(r.route));
 
-        // 46X 永遠置頂在城隧的第一行
+        // 46X 永遠固定在城隧置頂第一行
         htmlTemplate += renderBusRows(sm46xData, '城門隧道', shingMunMy46XEtaString, globalRedBus, globalYellowBus);
 
-        // 轉乘線 (48X, 269D, 40X) 複製並進行動態排序，防止污染快取
+        // 轉乘線 (48X, 269D, 40X) 複製新陣列並依據「首個趕得上的有效班次時間」進行動態排序
         const sortedTransferRoutes = [...transferRoutesData].sort((routeA, routeB) => {
             const validBusA = routeA.busData.find(b => b.eta && new Date(b.eta).getTime() >= myTargetTime - 30000);
             const validBusB = routeB.busData.find(b => b.eta && new Date(b.eta).getTime() >= myTargetTime - 30000);
@@ -154,7 +154,7 @@ function renderInterface() {
     appContainer.innerHTML = htmlTemplate;
 }
 
-// 輔助渲染 HTML 行
+// 產生路線 HTML 卡片的輔助函式
 function renderBusRows(routesData, stationType, shingMunMy46XEtaString, globalRedBus, globalYellowBus) {
     let html = '';
     for (const busItem of routesData) {
@@ -164,9 +164,19 @@ function renderBusRows(routesData, stationType, shingMunMy46XEtaString, globalRe
         if (busData && busData.length > 0) {
             const destName = busData[0].dest_tc;
 
-            const timeList = busData.slice(0, 3).map((bus, index) => {
-                if (!bus.eta) return "---";
-                
+            // 🌟 核心修正：利用 Set 過濾掉一模一樣的重複時間（解決九巴尾班車重複出現 3 次的 Bug）
+            const seenTimes = new Set();
+            const uniqueBusData = [];
+            
+            busData.forEach(bus => {
+                if (bus.eta && !seenTimes.has(bus.eta)) {
+                    seenTimes.add(bus.eta);
+                    uniqueBusData.push(bus);
+                }
+            });
+
+            // 過濾完重複後，才切取前 3 個有效班次
+            const timeList = uniqueBusData.slice(0, 3).map((bus, index) => {
                 const eta = new Date(bus.eta);
                 const now = new Date();
                 const totalSeconds = Math.floor((eta - now) / 1000);
@@ -201,7 +211,8 @@ function renderBusRows(routesData, stationType, shingMunMy46XEtaString, globalRe
                 }
             });
 
-            const timesString = timeList.join(' <span style="color: #334155;">➔</span> ');
+            // 搭配你之前要求的行動裝置排版，join('') 交給 CSS 處理垂直換行
+            const timesString = timeList.join('');
 
             html += `
                 <div class="bus-card">
@@ -228,11 +239,11 @@ function renderBusRows(routesData, stationType, shingMunMy46XEtaString, globalRe
     return html;
 }
 
-// 每秒鐘單純重新渲染畫面（計算新的剩餘分秒），每 30 秒向九巴 API 索取最新時間線
+// 控制器：每秒更新倒數分秒，每 30 秒強制抓取一次最新的網路資料
 let fetchCounter = 0;
 async function tick() {
     if (fetchCounter <= 0 || monitorDataCache === null) {
-        fetchCounter = 30; // 重設為 30 秒抓取一次網路
+        fetchCounter = 30; 
         await refreshDataFromAPI();
     }
     fetchCounter--;
@@ -241,7 +252,7 @@ async function tick() {
 
 async function init() {
     await tick();
-    setInterval(tick, 1000); // 啟動每秒時鐘
+    setInterval(tick, 1000); 
 }
 
 init();
