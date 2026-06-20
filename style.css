@@ -13,71 +13,93 @@ body {
 
 @media (min-width: 480px) {
     .container {
-        max-width: 450px;
+        max-width: 480px;
     }
 }
 
 h1 {
     color: #facc15;
-    font-size: 22px;
+    font-size: 20px;
     text-align: center;
-    margin-bottom: 16px;
-    margin-top: 8px;
+    margin-bottom: 12px;
+    margin-top: 4px;
 }
 
 .station-group-title {
     font-size: 11px;
     color: #94a3b8;
     font-weight: bold;
-    margin-top: 18px;
+    margin-top: 14px;
     margin-bottom: 6px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
 
+/* 🌟 讓卡片更緊湊，減少上下內邊距 */
 .bus-card {
     background-color: #1e293b;
     border: 1px solid #334155;
     border-radius: 8px;
-    padding: 10px 14px;
-    margin-bottom: 6px;
+    padding: 8px 12px;
+    margin-bottom: 5px;
 }
 
-/* 讓路線資訊和時間在手機上垂直或更緊湊地分配空間 */
+.bus-info-side {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
 .bus-id {
     color: #38bdf8;
     font-weight: bold;
-    font-size: 18px;
+    font-size: 16px;
 }
 
 .bus-destination {
     color: #94a3b8;
-    font-size: 13px;
-    margin-left: 4px;
+    font-size: 12px;
 }
 
-/* 🌟 時間欄位核心修正：改為垂直彈性佈局 */
+/* 🌟 時間容器：橫向並排，並加入小間距 */
 .bus-time {
     font-family: monospace;
-    font-size: 13px;
+    font-size: 12px;
     display: flex;
-    flex-direction: column; /* 時間上下排，不再左右擠 */
-    align-items: flex-end;  /* 靠右對齊 */
-    gap: 2px;
+    flex-direction: row; /* 恢復橫向並排 */
+    gap: 5px;            /* 膠囊之間的間距 */
+    align-items: center;
 }
 
-/* 隱藏原本橫向的箭頭（➔），改成用底線或間隔區分，讓畫面更乾淨 */
+/* 🌟 每班車的時間都變成一個精緻的小膠囊 */
 .bus-time span {
-    display: block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background-color: rgba(51, 65, 85, 0.4); /* 預設淡淡的灰色背景 */
+    color: #64748b;
+    font-weight: 500;
+    white-space: nowrap;
 }
 
-/* 幫後續的班次加上一點點縮排或淡化，凸顯第一班車 */
-.bus-time span:not(:first-child) {
-    font-size: 11px;
-    opacity: 0.6;
+/* 🌟 紅色高亮班次 */
+.bus-time span.eta-red {
+    color: #ef4444;
+    font-weight: 900;
+    background-color: rgba(239, 68, 68, 0.15); /* 淡淡的紅包圍圈 */
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    animation: pulse 1s infinite;
+}
+
+/* 🌟 黃色高亮班次 */
+.bus-time span.eta-yellow {
+    color: #facc15;
+    font-weight: 900;
+    background-color: rgba(250, 204, 21, 0.15); /* 淡淡的黃包圍圈 */
+    border: 1px solid rgba(250, 204, 21, 0.3);
+    animation: pulse 1s infinite;
 }
 
 @keyframes pulse {
     0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
+    50% { opacity: 0.5; }
 }
