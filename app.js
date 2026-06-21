@@ -164,7 +164,6 @@ function renderBusRows(routesData, stationType, shingMunMy46XEtaString, globalRe
         if (busData && busData.length > 0) {
             const destName = busData[0].dest_tc;
 
-            // 🌟 核心修正：利用 Set 過濾掉一模一樣的重複時間（解決九巴尾班車重複出現 3 次的 Bug）
             const seenTimes = new Set();
             const uniqueBusData = [];
             
@@ -181,7 +180,7 @@ function renderBusRows(routesData, stationType, shingMunMy46XEtaString, globalRe
                 const now = new Date();
                 const totalSeconds = Math.floor((eta - now) / 1000);
                 
-                let timeText = totalSeconds <= 0 ? "即將" : `${Math.floor(totalSeconds / 60)}分${(totalSeconds % 60).toString().padStart(2, '0')}秒`;
+                let timeText = totalSeconds <= 0 ? "Have car la" : `${Math.floor(totalSeconds / 60)}分${(totalSeconds % 60).toString().padStart(2, '0')}秒`;
 
                 let isRedBlink = false;
                 let isYellowBlink = false;
