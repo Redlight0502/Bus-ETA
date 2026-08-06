@@ -168,6 +168,7 @@
     background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:16px;
     display:flex; flex-direction:column; gap:12px;
   }
+  .field{margin-bottom:0;}
   .field label{
     display:block; font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em;
     color:var(--text-dim); text-transform:uppercase; margin-bottom:6px;
@@ -177,28 +178,45 @@
     padding:10px 12px; border-radius:8px; font-family:'Space Grotesk', sans-serif; font-size:14px;
   }
   .field input:focus, .field select:focus{outline:none; border-color:var(--amber);}
+  .field input[readonly]{opacity:.6;}
   .stop-block{
     background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:12px;
+    display:flex; flex-direction:column; gap:12px;
+  }
+  .stop-block-head{display:flex; align-items:center; justify-content:space-between;}
+  .stop-block-head .field{flex:1; margin-right:10px;}
+
+  .route-card{
+    background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px;
     display:flex; flex-direction:column; gap:10px;
   }
-  .route-row{display:grid; grid-template-columns:1fr 1fr auto; gap:8px; align-items:end;}
-  .route-row .field{flex:1;}
-  .route-remove{
-    background:none; border:1px solid var(--line); color:var(--red); border-radius:8px;
-    width:38px; height:38px; cursor:pointer; font-size:14px;
+  .route-card-head{
+    display:flex; align-items:center; justify-content:space-between;
+    font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.12em;
+    color:var(--text-dim);
   }
+  .route-remove{
+    background:none; border:1px solid var(--line); color:var(--red); border-radius:7px;
+    width:26px; height:26px; cursor:pointer; font-size:12px; line-height:1;
+  }
+  .route-remove:hover{border-color:var(--red);}
   .search-row{display:flex; gap:8px;}
   .search-row input{flex:1;}
   .search-results{
     display:flex; flex-direction:column; gap:4px; max-height:160px; overflow-y:auto;
-    border:1px solid var(--line); border-radius:8px; background:var(--panel);
+    border:1px solid var(--line); border-radius:8px; background:var(--panel-2);
   }
   .search-result{
     padding:9px 10px; font-size:12px; cursor:pointer; border-bottom:1px solid var(--line);
     font-family:'IBM Plex Mono', monospace;
   }
   .search-result:last-child{border-bottom:none;}
-  .search-result:hover{background:var(--panel-2); color:var(--amber);}
+  .search-result:hover{background:var(--panel); color:var(--amber);}
+  .selected-station{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--green);
+    padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:var(--panel-2);
+  }
+  .route-fields{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
   .add-route-btn, .save-btn{
     background:none; border:1px dashed var(--line); color:var(--text-dim);
     padding:10px; border-radius:8px; cursor:pointer; font-size:13px; font-family:'IBM Plex Mono', monospace;
@@ -218,6 +236,7 @@
     .board-head, .board-row{grid-template-columns:1fr 74px 60px 60px; padding:12px 10px;}
     .eta-primary{font-size:16px;}
     .route-num{font-size:14px;}
+    .route-fields{grid-template-columns:1fr;}
   }
 </style>
 </head>
@@ -275,7 +294,7 @@
 let state = {
   destinations: [
     { name:"HOME", stops:[
-        { nickname:"Stop 1", routes:[ {num:"46X", id:"6E6EBC9D1AF2DA52"} ] },
+        { nickname:"Stop 1", routes:[ {num:"46X", id:"6E6EBC9D1AF2DA52", stationLabel:"Saved station"} ] },
         { nickname:"Stop 2", routes:[] },
         { nickname:"Stop 3", routes:[] },
       ] },
@@ -402,7 +421,7 @@ function renderBoard(){
       }
       return seq === 1 ? `<span class="eta-primary dim">--:--</span>` : `<span class="eta-sub">--:--</span>`;
     });
-    rows += `<div class="board-row"><span class="route-num">${r.num}</span>${cells.join('')}</div>`;
+    rows += `<div class="board-row"><span class="route-num">${r.num || '—'}</span>${cells.join('')}</div>`;
   });
   board.innerHTML = rows;
 }
@@ -479,20 +498,14 @@ function renderConfig(){
       const stopBlock = document.createElement('div');
       stopBlock.className = 'stop-block';
       stopBlock.innerHTML = `
-        <div class="field">
-          <label>Stop nickname</label>
-          <input type="text" maxlength="12" value="${stop.nickname}" data-dest="${di}" data-stop="${si}" class="nick-input">
-        </div>
-        <div class="field">
-          <label>Search station (e.g. "Mong Kok")</label>
-          <div class="search-row">
-            <input type="text" placeholder="Type a station name…" class="search-input" data-dest="${di}" data-stop="${si}">
-            <button class="refresh-btn search-btn" data-dest="${di}" data-stop="${si}">Search</button>
+        <div class="stop-block-head">
+          <div class="field">
+            <label>Stop nickname</label>
+            <input type="text" maxlength="12" value="${stop.nickname}" data-dest="${di}" data-stop="${si}" class="nick-input">
           </div>
-          <div class="search-results" data-dest="${di}" data-stop="${si}" style="display:none; margin-top:8px;"></div>
         </div>
         <div class="routes-wrap" data-dest="${di}" data-stop="${si}"></div>
-        <button class="add-route-btn" data-dest="${di}" data-stop="${si}">+ Add route to last selected station</button>
+        <button class="add-route-btn" data-dest="${di}" data-stop="${si}">+ Add route slot</button>
       `;
       stopsWrap.appendChild(stopBlock);
       renderRoutes(di, si);
@@ -506,52 +519,78 @@ function renderConfig(){
   configList.querySelectorAll('.nick-input').forEach(el=>{
     el.oninput = e => { state.destinations[e.target.dataset.dest].stops[e.target.dataset.stop].nickname = e.target.value; };
   });
-  configList.querySelectorAll('.search-btn').forEach(el=>{
-    el.onclick = () => doStationSearch(el.dataset.dest, el.dataset.stop);
-  });
   configList.querySelectorAll('.add-route-btn').forEach(el=>{
     el.onclick = () => addBlankRoute(el.dataset.dest, el.dataset.stop);
   });
 }
 
+/* Each route now gets its own search box + result list + line/stop-id fields,
+   mirroring the "search pole -> pick station -> pick line" flow per slot. */
 function renderRoutes(di, si){
   const wrap = configList.querySelector(`.routes-wrap[data-dest="${di}"][data-stop="${si}"]`);
   const routes = state.destinations[di].stops[si].routes;
   wrap.innerHTML = '';
+
+  if (routes.length >= 6){
+    const addBtn = configList.querySelector(`.add-route-btn[data-dest="${di}"][data-stop="${si}"]`);
+    if (addBtn) addBtn.style.display = 'none';
+  } else {
+    const addBtn = configList.querySelector(`.add-route-btn[data-dest="${di}"][data-stop="${si}"]`);
+    if (addBtn) addBtn.style.display = 'block';
+  }
+
   routes.forEach((r, ri) => {
-    const row = document.createElement('div');
-    row.className = 'route-row';
-    row.innerHTML = `
-      <div class="field" style="margin-bottom:0;">
-        <label>Line</label>
-        <input type="text" value="${r.num}" class="route-num-input" data-dest="${di}" data-stop="${si}" data-route="${ri}">
+    const card = document.createElement('div');
+    card.className = 'route-card';
+    card.innerHTML = `
+      <div class="route-card-head">
+        <span>ROUTE SLOT ${ri+1}</span>
+        <button class="route-remove" title="Remove">✕</button>
       </div>
-      <div class="field" style="margin-bottom:0;">
-        <label>Stop ID</label>
-        <input type="text" value="${r.id}" readonly style="opacity:.6;">
+
+      <div class="field">
+        <label>1. Search station pole</label>
+        <div class="search-row">
+          <input type="text" placeholder="e.g. Mong Kok" class="search-input">
+          <button class="refresh-btn search-btn">Search</button>
+        </div>
+        <div class="search-results" style="display:none; margin-top:8px;"></div>
+        ${r.id ? `<div class="selected-station" style="margin-top:8px;">${r.stationLabel ? r.stationLabel : ('Stop ID: ' + r.id)}</div>` : ''}
       </div>
-      <button class="route-remove" title="Remove">✕</button>
+
+      <div class="route-fields">
+        <div class="field">
+          <label>2. Route line</label>
+          <input type="text" placeholder="e.g. 46X" class="route-num-input" value="${r.num}">
+        </div>
+        <div class="field">
+          <label>Stop ID</label>
+          <input type="text" value="${r.id}" readonly>
+        </div>
+      </div>
     `;
-    row.querySelector('.route-num-input').oninput = e => { r.num = e.target.value; };
-    row.querySelector('.route-remove').onclick = () => {
-      routes.splice(ri,1);
-      renderRoutes(di, si);
-    };
-    wrap.appendChild(row);
+
+    card.querySelector('.route-num-input').oninput = e => { r.num = e.target.value; };
+    card.querySelector('.route-remove').onclick = () => { routes.splice(ri,1); renderRoutes(di, si); };
+    card.querySelector('.search-btn').onclick = () => doStationSearch(di, si, ri, card);
+    card.querySelector('.search-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter'){ e.preventDefault(); doStationSearch(di, si, ri, card); }
+    });
+
+    wrap.appendChild(card);
   });
 }
 
 function addBlankRoute(di, si){
   const routes = state.destinations[di].stops[si].routes;
   if (routes.length >= 6){ alert('Max 6 routes per stop'); return; }
-  routes.push({ num:'', id:'' });
+  routes.push({ num:'', id:'', stationLabel:'' });
   renderRoutes(di, si);
 }
 
-let searchDebounce = null;
-async function doStationSearch(di, si){
-  const input = configList.querySelector(`.search-input[data-dest="${di}"][data-stop="${si}"]`);
-  const resultsBox = configList.querySelector(`.search-results[data-dest="${di}"][data-stop="${si}"]`);
+async function doStationSearch(di, si, ri, cardEl){
+  const input = cardEl.querySelector('.search-input');
+  const resultsBox = cardEl.querySelector('.search-results');
   const query = input.value.trim().toUpperCase();
   if (!query){ alert('Type a station name first'); return; }
 
@@ -576,12 +615,10 @@ async function doStationSearch(di, si){
       row.className = 'search-result';
       row.textContent = `${m.name_en} (${m.name_tc}) — ${m.stop}`;
       row.onclick = () => {
-        const routes = state.destinations[di].stops[si].routes;
-        if (routes.length >= 6){ alert('Max 6 routes per stop'); return; }
-        routes.push({ num:'', id:m.stop });
+        const route = state.destinations[di].stops[si].routes[ri];
+        route.id = m.stop;
+        route.stationLabel = `${m.name_en} (${m.name_tc})`;
         renderRoutes(di, si);
-        resultsBox.style.display = 'none';
-        input.value = '';
       };
       resultsBox.appendChild(row);
     });
