@@ -1,17 +1,610 @@
 <!DOCTYPE html>
-<html lang="zh-HK">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AUTO BUS ETA</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Departures</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
+
+  :root{
+    --bg:        #0a0c0f;
+    --panel:     #14181d;
+    --panel-2:   #1b2027;
+    --line:      #262c34;
+    --amber:     #ffb100;
+    --amber-dim: #7a5a12;
+    --text:      #e7e9ec;
+    --text-dim:  #7d8792;
+    --green:     #33d17a;
+    --red:       #ff5a5f;
+    --radius:    10px;
+  }
+  [data-theme="light"]{
+    --bg:        #eef0f2;
+    --panel:     #ffffff;
+    --panel-2:   #f4f5f7;
+    --line:      #dde1e6;
+    --amber:     #b3720a;
+    --amber-dim: #e3c188;
+    --text:      #14181d;
+    --text-dim:  #6b7480;
+    --green:     #1c9c56;
+    --red:       #d6383d;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Space Grotesk', sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+    transition:background .25s ease, color .25s ease;
+  }
+  #app{max-width:640px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column;}
+
+  /* ---------- Topbar ---------- */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px 20px 14px 20px;
+    border-bottom:1px solid var(--line);
+  }
+  .brand{display:flex; flex-direction:column; gap:2px;}
+  .brand .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px; letter-spacing:.18em; color:var(--amber); font-weight:600;
+  }
+  .brand h1{font-size:21px; font-weight:700; letter-spacing:-.01em;}
+  .clock{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px; color:var(--text-dim); text-align:right; line-height:1.5;
+  }
+  .clock b{color:var(--text); font-weight:600;}
+  .icon-btn{
+    background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    width:36px; height:36px; border-radius:9px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-size:16px;
+    transition:border-color .15s ease, transform .1s ease;
+  }
+  .icon-btn:hover{border-color:var(--amber);}
+  .icon-btn:active{transform:scale(.94);}
+  .topbar-actions{display:flex; gap:8px;}
+
+  main{flex:1; padding:20px; display:flex; flex-direction:column; gap:16px;}
+  .screen{display:none; flex-direction:column; gap:16px; animation:rise .28s ease;}
+  .screen.active{display:flex;}
+  @keyframes rise{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+
+  /* ---------- Menu screen ---------- */
+  .section-label{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.14em;
+    color:var(--text-dim); text-transform:uppercase; margin-bottom:2px;
+  }
+  .dest-grid{display:flex; flex-direction:column; gap:10px;}
+  .dest-card{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px 18px; cursor:pointer; display:flex; align-items:center; justify-content:space-between;
+    transition:border-color .15s ease, transform .1s ease;
+    position:relative; overflow:hidden;
+  }
+  .dest-card::before{
+    content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--amber);
+    transform:scaleY(0); transform-origin:bottom; transition:transform .18s ease;
+  }
+  .dest-card:hover{border-color:var(--amber-dim); transform:translateX(2px);}
+  .dest-card:hover::before{transform:scaleY(1);}
+  .dest-card:active{transform:translateX(2px) scale(.995);}
+  .dest-name{font-size:17px; font-weight:600;}
+  .dest-meta{font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--text-dim); margin-top:3px;}
+  .dest-arrow{color:var(--amber); font-size:18px;}
+
+  /* ---------- ETA screen ---------- */
+  .eta-header{display:flex; align-items:center; gap:10px;}
+  .back-btn{
+    background:none; border:none; color:var(--text-dim); font-size:14px; cursor:pointer;
+    font-family:'IBM Plex Mono', monospace; display:flex; align-items:center; gap:6px;
+  }
+  .back-btn:hover{color:var(--amber);}
+  .eta-title{font-size:18px; font-weight:700; margin-left:auto;}
+
+  .tabs{display:flex; gap:6px; overflow-x:auto; padding-bottom:2px;}
+  .tab{
+    font-family:'IBM Plex Mono', monospace; font-size:12px; font-weight:600;
+    padding:9px 14px; border-radius:8px; border:1px solid var(--line);
+    background:var(--panel-2); color:var(--text-dim); cursor:pointer; white-space:nowrap;
+    transition:all .15s ease;
+  }
+  .tab.active{background:var(--panel); color:var(--amber); border-color:var(--amber-dim);}
+
+  .board{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    overflow:hidden;
+  }
+  .board-head{
+    display:grid; grid-template-columns:1fr 88px 72px 72px;
+    padding:10px 14px; font-family:'IBM Plex Mono', monospace; font-size:10px;
+    letter-spacing:.12em; color:var(--text-dim); border-bottom:1px solid var(--line);
+  }
+  .board-row{
+    display:grid; grid-template-columns:1fr 88px 72px 72px; align-items:center;
+    padding:14px; border-bottom:1px solid var(--line);
+  }
+  .board-row:last-child{border-bottom:none;}
+  .route-num{
+    font-family:'IBM Plex Mono', monospace; font-weight:700; font-size:16px; color:var(--amber);
+  }
+  .eta-primary{
+    font-family:'IBM Plex Mono', monospace; font-weight:700; font-size:19px;
+    font-variant-numeric:tabular-nums; letter-spacing:.02em;
+  }
+  .eta-primary.soon{color:var(--red);}
+  .eta-primary.ok{color:var(--green);}
+  .eta-primary.dim{color:var(--text-dim); font-weight:600; font-size:16px;}
+  .eta-sub{
+    font-family:'IBM Plex Mono', monospace; font-size:13px; color:var(--text-dim);
+    font-variant-numeric:tabular-nums;
+  }
+  .board-empty{padding:34px 14px; text-align:center; color:var(--text-dim); font-size:13px;}
+
+  .status-bar{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--text-dim);
+  }
+  .status-dot{width:7px; height:7px; border-radius:50%; background:var(--text-dim); display:inline-block; margin-right:6px;}
+  .status-dot.live{background:var(--green); box-shadow:0 0 0 3px color-mix(in srgb, var(--green) 25%, transparent);}
+  .status-dot.err{background:var(--red);}
+  .refresh-btn{
+    background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    font-family:'IBM Plex Mono', monospace; font-size:12px; font-weight:600;
+    padding:9px 16px; border-radius:8px; cursor:pointer; transition:border-color .15s ease;
+  }
+  .refresh-btn:hover{border-color:var(--amber);}
+  .refresh-btn:disabled{opacity:.5; cursor:default;}
+
+  /* ---------- Config screen ---------- */
+  .config-dest{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:16px;
+    display:flex; flex-direction:column; gap:12px;
+  }
+  .field label{
+    display:block; font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em;
+    color:var(--text-dim); text-transform:uppercase; margin-bottom:6px;
+  }
+  .field input, .field select{
+    width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    padding:10px 12px; border-radius:8px; font-family:'Space Grotesk', sans-serif; font-size:14px;
+  }
+  .field input:focus, .field select:focus{outline:none; border-color:var(--amber);}
+  .stop-block{
+    background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:12px;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .route-row{display:grid; grid-template-columns:1fr 1fr auto; gap:8px; align-items:end;}
+  .route-row .field{flex:1;}
+  .route-remove{
+    background:none; border:1px solid var(--line); color:var(--red); border-radius:8px;
+    width:38px; height:38px; cursor:pointer; font-size:14px;
+  }
+  .search-row{display:flex; gap:8px;}
+  .search-row input{flex:1;}
+  .search-results{
+    display:flex; flex-direction:column; gap:4px; max-height:160px; overflow-y:auto;
+    border:1px solid var(--line); border-radius:8px; background:var(--panel);
+  }
+  .search-result{
+    padding:9px 10px; font-size:12px; cursor:pointer; border-bottom:1px solid var(--line);
+    font-family:'IBM Plex Mono', monospace;
+  }
+  .search-result:last-child{border-bottom:none;}
+  .search-result:hover{background:var(--panel-2); color:var(--amber);}
+  .add-route-btn, .save-btn{
+    background:none; border:1px dashed var(--line); color:var(--text-dim);
+    padding:10px; border-radius:8px; cursor:pointer; font-size:13px; font-family:'IBM Plex Mono', monospace;
+    transition:all .15s ease;
+  }
+  .add-route-btn:hover{border-color:var(--amber); color:var(--amber);}
+  .save-btn{
+    border:1px solid var(--amber-dim); background:var(--amber); color:#1a1200; font-weight:700;
+    border-style:solid;
+  }
+  .save-btn:hover{filter:brightness(1.08);}
+
+  ::-webkit-scrollbar{height:6px; width:6px;}
+  ::-webkit-scrollbar-thumb{background:var(--line); border-radius:3px;}
+
+  @media (max-width:420px){
+    .board-head, .board-row{grid-template-columns:1fr 74px 60px 60px; padding:12px 10px;}
+    .eta-primary{font-size:16px;}
+    .route-num{font-size:14px;}
+  }
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>AUTO BUS ETA 🚌</h1>
-        <div id="app">載入中...</div>
-    </div>
+<div id="app">
 
-    <script src="app.js"></script>
+  <div class="topbar">
+    <div class="brand">
+      <span class="eyebrow">LIVE TRANSIT</span>
+      <h1>Departures</h1>
+    </div>
+    <div class="topbar-actions">
+      <button class="icon-btn" id="themeToggle" title="Toggle theme">◐</button>
+      <button class="icon-btn" id="configToggle" title="Configure stops">⚙</button>
+    </div>
+  </div>
+
+  <main>
+
+    <!-- MENU SCREEN -->
+    <section class="screen active" id="menuScreen">
+      <div class="section-label">Destinations</div>
+      <div class="dest-grid" id="destGrid"></div>
+    </section>
+
+    <!-- ETA SCREEN -->
+    <section class="screen" id="etaScreen">
+      <div class="eta-header">
+        <button class="back-btn" id="backBtn">← Menu</button>
+        <span class="eta-title" id="etaTitle"></span>
+      </div>
+      <div class="tabs" id="tabRow"></div>
+      <div class="board" id="board"></div>
+      <div class="status-bar">
+        <span id="statusText"><span class="status-dot"></span>Not synced</span>
+        <button class="refresh-btn" id="refreshBtn">Refresh</button>
+      </div>
+    </section>
+
+    <!-- CONFIG SCREEN -->
+    <section class="screen" id="configScreen">
+      <div class="eta-header">
+        <button class="back-btn" id="configBackBtn">← Menu</button>
+        <span class="eta-title">Configure</span>
+      </div>
+      <div id="configList" style="display:flex; flex-direction:column; gap:16px;"></div>
+      <button class="save-btn" id="saveConfigBtn">Apply changes</button>
+    </section>
+
+  </main>
+</div>
+
+<script>
+/* ============ STATE (in-memory only — no persistence) ============ */
+let state = {
+  destinations: [
+    { name:"HOME", stops:[
+        { nickname:"Stop 1", routes:[ {num:"46X", id:"6E6EBC9D1AF2DA52"} ] },
+        { nickname:"Stop 2", routes:[] },
+        { nickname:"Stop 3", routes:[] },
+      ] },
+    { name:"SCHOOL", stops:[
+        { nickname:"Stop 1", routes:[] },
+        { nickname:"Stop 2", routes:[] },
+      ] },
+    { name:"WORK", stops:[
+        { nickname:"Stop 1", routes:[] },
+      ] },
+    { name:"GYM", stops:[
+        { nickname:"Stop 1", routes:[] },
+      ] },
+  ]
+};
+
+let activeDest = 0;
+let activeStop = 0;
+let etaData = {}; // etaData[routeIndex] = { seq: {1: epochSeconds, 2:..., 3:...} }
+let tickTimer = null;
+let theme = 'dark';
+
+/* ============ ELEMENTS ============ */
+const destGrid   = document.getElementById('destGrid');
+const menuScreen = document.getElementById('menuScreen');
+const etaScreen  = document.getElementById('etaScreen');
+const configScreen = document.getElementById('configScreen');
+const tabRow     = document.getElementById('tabRow');
+const board      = document.getElementById('board');
+const etaTitle   = document.getElementById('etaTitle');
+const statusText = document.getElementById('statusText');
+const clockEl    = document.createElement('div');
+
+/* ============ CLOCK ============ */
+function renderClock(){
+  const now = new Date();
+  const d = String(now.getDate()).padStart(2,'0');
+  const m = String(now.getMonth()+1).padStart(2,'0');
+  const y = now.getFullYear();
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  clockEl.className = 'clock';
+  clockEl.innerHTML = `<b>${hh}:${mm}</b><br>${d}/${m}/${y}`;
+}
+document.querySelector('.topbar').insertBefore(clockEl, document.querySelector('.topbar-actions'));
+renderClock();
+setInterval(renderClock, 15000);
+
+/* ============ SCREEN SWITCHING ============ */
+function showScreen(id){
+  [menuScreen, etaScreen, configScreen].forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+/* ============ MENU ============ */
+function renderMenu(){
+  destGrid.innerHTML = '';
+  state.destinations.forEach((dest, i) => {
+    const routeCount = dest.stops.reduce((acc,s) => acc + s.routes.length, 0);
+    const card = document.createElement('div');
+    card.className = 'dest-card';
+    card.innerHTML = `
+      <div>
+        <div class="dest-name">${dest.name}</div>
+        <div class="dest-meta">${dest.stops.length} stop${dest.stops.length!==1?'s':''} · ${routeCount} route${routeCount!==1?'s':''}</div>
+      </div>
+      <span class="dest-arrow">→</span>`;
+    card.onclick = () => openDestination(i);
+    destGrid.appendChild(card);
+  });
+}
+
+function openDestination(i){
+  activeDest = i;
+  activeStop = 0;
+  etaData = {};
+  etaTitle.textContent = state.destinations[i].name;
+  renderTabs();
+  renderBoard();
+  showScreen('etaScreen');
+  startTicking();
+}
+
+/* ============ TABS ============ */
+function renderTabs(){
+  const dest = state.destinations[activeDest];
+  tabRow.innerHTML = '';
+  dest.stops.forEach((stop, i) => {
+    const t = document.createElement('div');
+    t.className = 'tab' + (i === activeStop ? ' active' : '');
+    t.textContent = stop.nickname || `Stop ${i+1}`;
+    t.onclick = () => { activeStop = i; renderTabs(); renderBoard(); };
+    tabRow.appendChild(t);
+  });
+}
+
+/* ============ BOARD ============ */
+function fmtCountdown(epochSeconds){
+  const diff = epochSeconds - Math.floor(Date.now()/1000);
+  if (diff > 0){
+    const m = Math.floor(diff/60), s = diff%60;
+    return { text:`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`, cls: m<=2 ? 'soon':'ok' };
+  } else if (diff > -60){
+    return { text:'ARR', cls:'soon' };
+  }
+  return { text:'--:--', cls:'dim' };
+}
+
+function renderBoard(){
+  const dest = state.destinations[activeDest];
+  const stop = dest.stops[activeStop];
+  if (!stop || stop.routes.length === 0){
+    board.innerHTML = `<div class="board-empty">No routes configured for this stop yet.<br>Tap ⚙ to add one.</div>`;
+    return;
+  }
+  let rows = `<div class="board-head"><span>LINE</span><span>1ST</span><span>2ND</span><span>3RD</span></div>`;
+  stop.routes.forEach((r, idx) => {
+    const d = etaData[idx];
+    const cells = [1,2,3].map(seq => {
+      if (d && d[seq]){
+        const f = fmtCountdown(d[seq]);
+        if (seq === 1) return `<span class="eta-primary ${f.cls}">${f.text}</span>`;
+        return `<span class="eta-sub">${f.text !== 'ARR' ? f.text : '--:--'}</span>`;
+      }
+      return seq === 1 ? `<span class="eta-primary dim">--:--</span>` : `<span class="eta-sub">--:--</span>`;
+    });
+    rows += `<div class="board-row"><span class="route-num">${r.num}</span>${cells.join('')}</div>`;
+  });
+  board.innerHTML = rows;
+}
+
+function tickBoard(){
+  // cheap re-render of just the time text, keeps UI live between fetches
+  renderBoard();
+}
+function startTicking(){
+  if (tickTimer) clearInterval(tickTimer);
+  tickTimer = setInterval(tickBoard, 1000);
+}
+
+/* ============ FETCH ETAs ============ */
+async function refreshEtas(){
+  const dest = state.destinations[activeDest];
+  const stop = dest.stops[activeStop];
+  if (!stop || stop.routes.length === 0) return;
+
+  statusText.innerHTML = `<span class="status-dot"></span>Syncing…`;
+  document.getElementById('refreshBtn').disabled = true;
+
+  const uniqueIds = [...new Set(stop.routes.map(r => r.id).filter(id => id && id.length > 4))];
+  const results = {};
+
+  try{
+    await Promise.all(uniqueIds.map(async (stopId) => {
+      const res = await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/${stopId}`);
+      if (!res.ok) return;
+      const json = await res.json();
+      results[stopId] = json.data || [];
+    }));
+
+    const newEtaData = {};
+    stop.routes.forEach((r, idx) => {
+      const pool = results[r.id] || [];
+      const matches = pool.filter(item => item.route === r.num);
+      newEtaData[idx] = {};
+      matches.forEach(m => {
+        if (m.eta && m.eta_seq >= 1 && m.eta_seq <= 3){
+          newEtaData[idx][m.eta_seq] = Math.floor(new Date(m.eta).getTime()/1000);
+        }
+      });
+    });
+    etaData = newEtaData;
+    statusText.innerHTML = `<span class="status-dot live"></span>Synced ${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+  } catch(err){
+    statusText.innerHTML = `<span class="status-dot err"></span>Network error`;
+  }
+
+  document.getElementById('refreshBtn').disabled = false;
+  renderBoard();
+}
+
+/* ============ CONFIG SCREEN ============ */
+const configList = document.getElementById('configList');
+
+function renderConfig(){
+  configList.innerHTML = '';
+  state.destinations.forEach((dest, di) => {
+    const block = document.createElement('div');
+    block.className = 'config-dest';
+    block.innerHTML = `
+      <div class="field">
+        <label>Destination name</label>
+        <input type="text" maxlength="15" value="${dest.name}" data-dest="${di}" class="dest-name-input">
+      </div>
+      <div id="stopsWrap-${di}"></div>
+    `;
+    configList.appendChild(block);
+
+    const stopsWrap = block.querySelector(`#stopsWrap-${di}`);
+    dest.stops.forEach((stop, si) => {
+      const stopBlock = document.createElement('div');
+      stopBlock.className = 'stop-block';
+      stopBlock.innerHTML = `
+        <div class="field">
+          <label>Stop nickname</label>
+          <input type="text" maxlength="12" value="${stop.nickname}" data-dest="${di}" data-stop="${si}" class="nick-input">
+        </div>
+        <div class="field">
+          <label>Search station (e.g. "Mong Kok")</label>
+          <div class="search-row">
+            <input type="text" placeholder="Type a station name…" class="search-input" data-dest="${di}" data-stop="${si}">
+            <button class="refresh-btn search-btn" data-dest="${di}" data-stop="${si}">Search</button>
+          </div>
+          <div class="search-results" data-dest="${di}" data-stop="${si}" style="display:none; margin-top:8px;"></div>
+        </div>
+        <div class="routes-wrap" data-dest="${di}" data-stop="${si}"></div>
+        <button class="add-route-btn" data-dest="${di}" data-stop="${si}">+ Add route to last selected station</button>
+      `;
+      stopsWrap.appendChild(stopBlock);
+      renderRoutes(di, si);
+    });
+  });
+
+  // wire events
+  configList.querySelectorAll('.dest-name-input').forEach(el=>{
+    el.oninput = e => { state.destinations[e.target.dataset.dest].name = e.target.value; };
+  });
+  configList.querySelectorAll('.nick-input').forEach(el=>{
+    el.oninput = e => { state.destinations[e.target.dataset.dest].stops[e.target.dataset.stop].nickname = e.target.value; };
+  });
+  configList.querySelectorAll('.search-btn').forEach(el=>{
+    el.onclick = () => doStationSearch(el.dataset.dest, el.dataset.stop);
+  });
+  configList.querySelectorAll('.add-route-btn').forEach(el=>{
+    el.onclick = () => addBlankRoute(el.dataset.dest, el.dataset.stop);
+  });
+}
+
+function renderRoutes(di, si){
+  const wrap = configList.querySelector(`.routes-wrap[data-dest="${di}"][data-stop="${si}"]`);
+  const routes = state.destinations[di].stops[si].routes;
+  wrap.innerHTML = '';
+  routes.forEach((r, ri) => {
+    const row = document.createElement('div');
+    row.className = 'route-row';
+    row.innerHTML = `
+      <div class="field" style="margin-bottom:0;">
+        <label>Line</label>
+        <input type="text" value="${r.num}" class="route-num-input" data-dest="${di}" data-stop="${si}" data-route="${ri}">
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Stop ID</label>
+        <input type="text" value="${r.id}" readonly style="opacity:.6;">
+      </div>
+      <button class="route-remove" title="Remove">✕</button>
+    `;
+    row.querySelector('.route-num-input').oninput = e => { r.num = e.target.value; };
+    row.querySelector('.route-remove').onclick = () => {
+      routes.splice(ri,1);
+      renderRoutes(di, si);
+    };
+    wrap.appendChild(row);
+  });
+}
+
+function addBlankRoute(di, si){
+  const routes = state.destinations[di].stops[si].routes;
+  if (routes.length >= 6){ alert('Max 6 routes per stop'); return; }
+  routes.push({ num:'', id:'' });
+  renderRoutes(di, si);
+}
+
+let searchDebounce = null;
+async function doStationSearch(di, si){
+  const input = configList.querySelector(`.search-input[data-dest="${di}"][data-stop="${si}"]`);
+  const resultsBox = configList.querySelector(`.search-results[data-dest="${di}"][data-stop="${si}"]`);
+  const query = input.value.trim().toUpperCase();
+  if (!query){ alert('Type a station name first'); return; }
+
+  resultsBox.style.display = 'block';
+  resultsBox.innerHTML = `<div class="search-result">Searching…</div>`;
+
+  try{
+    const res = await fetch('https://data.etabus.gov.hk/v1/transport/kmb/stop');
+    const json = await res.json();
+    const matches = (json.data || []).filter(item =>
+      (item.name_en && item.name_en.toUpperCase().includes(query)) ||
+      (item.name_tc && item.name_tc.includes(query))
+    ).slice(0, 25);
+
+    if (matches.length === 0){
+      resultsBox.innerHTML = `<div class="search-result">No matching stations</div>`;
+      return;
+    }
+    resultsBox.innerHTML = '';
+    matches.forEach(m => {
+      const row = document.createElement('div');
+      row.className = 'search-result';
+      row.textContent = `${m.name_en} (${m.name_tc}) — ${m.stop}`;
+      row.onclick = () => {
+        const routes = state.destinations[di].stops[si].routes;
+        if (routes.length >= 6){ alert('Max 6 routes per stop'); return; }
+        routes.push({ num:'', id:m.stop });
+        renderRoutes(di, si);
+        resultsBox.style.display = 'none';
+        input.value = '';
+      };
+      resultsBox.appendChild(row);
+    });
+  } catch(err){
+    resultsBox.innerHTML = `<div class="search-result">Network error — try again</div>`;
+  }
+}
+
+/* ============ NAV / THEME ============ */
+document.getElementById('backBtn').onclick = () => { clearInterval(tickTimer); showScreen('menuScreen'); renderMenu(); };
+document.getElementById('configBackBtn').onclick = () => { showScreen('menuScreen'); renderMenu(); };
+document.getElementById('configToggle').onclick = () => { renderConfig(); showScreen('configScreen'); };
+document.getElementById('saveConfigBtn').onclick = () => { renderMenu(); showScreen('menuScreen'); };
+document.getElementById('refreshBtn').onclick = refreshEtas;
+
+document.getElementById('themeToggle').onclick = () => {
+  theme = theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('themeToggle').textContent = theme === 'dark' ? '◐' : '◑';
+};
+
+/* ============ INIT ============ */
+renderMenu();
+</script>
 </body>
 </html>
