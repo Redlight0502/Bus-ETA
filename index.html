@@ -228,6 +228,16 @@
     border-style:solid;
   }
   .save-btn:hover{filter:brightness(1.08);}
+  .config-actions{display:flex; gap:8px;}
+  .ghost-btn{
+    flex:1; background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    padding:11px; border-radius:8px; cursor:pointer; font-size:13px; font-family:'IBM Plex Mono', monospace;
+    font-weight:600; transition:border-color .15s ease;
+  }
+  .ghost-btn:hover{border-color:var(--amber);}
+  .save-hint{
+    font-size:12px; color:var(--text-dim); line-height:1.5; padding:0 2px;
+  }
 
   ::-webkit-scrollbar{height:6px; width:6px;}
   ::-webkit-scrollbar-thumb{background:var(--line); border-radius:3px;}
@@ -283,6 +293,12 @@
         <span class="eta-title">Configure</span>
       </div>
       <div id="configList" style="display:flex; flex-direction:column; gap:16px;"></div>
+      <div class="config-actions">
+        <button class="ghost-btn" id="exportBtn">↓ Save to file</button>
+        <button class="ghost-btn" id="importBtn">↑ Load from file</button>
+        <input type="file" id="importInput" accept="application/json" style="display:none;">
+      </div>
+      <div class="save-hint">Config only lives in this tab. Save to a file to keep it, then load it back next time you open the dashboard.</div>
       <button class="save-btn" id="saveConfigBtn">Apply changes</button>
     </section>
 
@@ -626,6 +642,43 @@ async function doStationSearch(di, si, ri, cardEl){
     resultsBox.innerHTML = `<div class="search-result">Network error — try again</div>`;
   }
 }
+
+/* ============ SAVE / LOAD (file-based, no browser storage) ============ */
+document.getElementById('exportBtn').onclick = () => {
+  const dataStr = JSON.stringify(state, null, 2);
+  const blob = new Blob([dataStr], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'dashboard-config.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
+document.getElementById('importBtn').onclick = () => {
+  document.getElementById('importInput').click();
+};
+
+document.getElementById('importInput').onchange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try{
+      const parsed = JSON.parse(evt.target.result);
+      if (!parsed || !Array.isArray(parsed.destinations)) throw new Error('bad shape');
+      state = parsed;
+      renderConfig();
+      renderMenu();
+    } catch(err){
+      alert('That file doesn\'t look like a valid dashboard config.');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+};
 
 /* ============ NAV / THEME ============ */
 document.getElementById('backBtn').onclick = () => { clearInterval(tickTimer); showScreen('menuScreen'); renderMenu(); };
