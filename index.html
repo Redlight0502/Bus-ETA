@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>KMB Transit & Config</title>
+    <title>Transit OS</title>
     <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
@@ -31,79 +31,108 @@
         .animate-pulse-subtle {
             animation: pulse-subtle 1.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
-        /* Modal transition */
-        .modal-enter {
-            opacity: 0;
-            transform: translateY(100%);
+        /* Hide scrollbar for clean UI */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
         }
-        .modal-enter-active {
-            opacity: 1;
-            transform: translateY(0);
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .modal-exit {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        .modal-exit-active {
-            opacity: 0;
-            transform: translateY(100%);
-            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
     </style>
 </head>
-<body class="min-h-screen text-black dark:text-white pb-20 selection:bg-gray-200 dark:selection:zinc-800">
+<body class="min-h-screen text-black dark:text-white pb-24 selection:bg-gray-200 dark:selection:zinc-800">
 
+    <!-- Minimal Header -->
     <header class="sticky top-0 z-40 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-gray-100 dark:border-zinc-900">
         <div class="max-w-md mx-auto px-5 h-14 flex items-center justify-between">
             <div class="flex items-center gap-2">
-                <h1 class="text-[15px] font-semibold tracking-tight">Transit</h1>
+                <h1 id="header-title" class="text-[15px] font-semibold tracking-tight">即時班次</h1>
                 <span id="sync-timer" class="mono text-xs text-gray-400 dark:text-zinc-500 font-medium bg-gray-100 dark:bg-zinc-900 px-2 py-0.5 rounded-full">30s</span>
             </div>
-            <button onclick="openConfigModal()" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-zinc-900 flex items-center justify-center text-gray-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-            </button>
+            <div class="flex items-center gap-2">
+                <button onclick="switchTab('config')" id="btn-config-icon" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-zinc-900 flex items-center justify-center text-gray-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                </button>
+            </div>
         </div>
     </header>
 
-    <main id="app" class="max-w-md mx-auto px-5 pt-6 flex flex-col gap-8">
-        <div class="flex flex-col items-center justify-center py-32 gap-3">
-            <div class="w-5 h-5 rounded-full border-2 border-gray-200 dark:border-zinc-800 border-t-black dark:border-t-white animate-spin"></div>
+    <!-- Views Container -->
+    <main class="max-w-md mx-auto px-5 pt-6">
+        
+        <!-- VIEW 1: ETA MONITOR -->
+        <div id="view-eta" class="view-section flex flex-col gap-8">
+            <div id="eta-app-container" class="flex flex-col gap-8">
+                <div class="flex flex-col items-center justify-center py-32 gap-3">
+                    <div class="w-5 h-5 rounded-full border-2 border-gray-200 dark:border-zinc-800 border-t-black dark:border-t-white animate-spin"></div>
+                </div>
+            </div>
         </div>
+
+        <!-- VIEW 2: MAP / FIND STOP -->
+        <div id="view-finder" class="view-section hidden flex flex-col gap-6">
+            <div class="flex flex-col gap-2">
+                <h2 class="text-xs font-semibold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">站點與路線搜尋</h2>
+                <div class="flex gap-2">
+                    <input id="search-route-input" type="text" placeholder="輸入九巴路線 (例: 46X)" class="w-full bg-gray-50 dark:bg-zinc-900 px-4 py-3 rounded-2xl text-sm border border-gray-200/60 dark:border-zinc-800 focus:outline-none focus:border-black dark:focus:border-white mono uppercase">
+                    <button onclick="searchBusRoute()" class="bg-black dark:bg-white text-white dark:text-black font-semibold text-xs px-5 rounded-2xl transition-opacity active:opacity-80">搜尋</button>
+                </div>
+            </div>
+            <div id="search-results" class="flex flex-col gap-3">
+                <div class="text-center py-20 text-gray-400 text-xs">請輸入欲查詢的路線以檢視所有停站</div>
+            </div>
+        </div>
+
+        <!-- VIEW 3: CONFIGURATION -->
+        <div id="view-config" class="view-section hidden flex flex-col gap-6">
+            <div class="flex flex-col gap-2">
+                <h2 class="text-xs font-semibold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">新增監控</h2>
+                <div class="bg-gray-50 dark:bg-zinc-900/60 p-4 rounded-2xl border border-gray-200/60 dark:border-zinc-800 flex flex-col gap-3">
+                    <div class="grid grid-cols-2 gap-2">
+                        <input id="input-stopid" type="text" placeholder="Stop ID (例: 6E6EBC...)" class="w-full bg-white dark:bg-zinc-900 px-3 py-2.5 rounded-xl text-xs border border-gray-200 dark:border-zinc-800 focus:outline-none focus:border-black dark:focus:border-white mono">
+                        <input id="input-stopname" type="text" placeholder="站點名稱 (例: 日景樓)" class="w-full bg-white dark:bg-zinc-900 px-3 py-2.5 rounded-xl text-xs border border-gray-200 dark:border-zinc-800 focus:outline-none focus:border-black dark:focus:border-white">
+                    </div>
+                    <div class="flex gap-2">
+                        <input id="input-route" type="text" placeholder="路線 (例: 46X)" class="w-2/3 bg-white dark:bg-zinc-900 px-3 py-2.5 rounded-xl text-xs border border-gray-200 dark:border-zinc-800 focus:outline-none focus:border-black dark:focus:border-white mono uppercase">
+                        <button onclick="addCustomConfig()" class="w-1/3 bg-black dark:bg-white text-white dark:text-black font-semibold text-xs py-2.5 rounded-xl transition-opacity active:opacity-80">加入</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xs font-semibold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">現有監控清單</h2>
+                    <button onclick="resetDefaultConfig()" class="text-xs text-red-500 hover:underline">重設預設</button>
+                </div>
+                <div id="config-list-container" class="flex flex-col gap-2">
+                    <!-- Config items -->
+                </div>
+            </div>
+        </div>
+
     </main>
 
-    <div id="config-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden items-end sm:items-center justify-center">
-        <div class="w-full max-w-md bg-white dark:bg-zinc-950 rounded-t-3xl sm:rounded-2xl p-6 flex flex-col max-h-[85vh] overflow-y-auto border border-gray-100 dark:border-zinc-800 shadow-2xl">
-            <div class="flex items-center justify-between pb-4 mb-4 border-b border-gray-100 dark:border-zinc-900">
-                <h2 class="text-base font-bold tracking-tight">監控站點設定 (Config)</h2>
-                <button onclick="closeConfigModal()" class="text-sm font-semibold text-gray-400 hover:text-black dark:hover:text-white">完成</button>
-            </div>
-
-            <div class="bg-gray-50 dark:bg-zinc-900/60 p-4 rounded-2xl border border-gray-200/60 dark:border-zinc-800 flex flex-col gap-3 mb-6">
-                <div class="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">新增監控路線</div>
-                <div class="grid grid-cols-2 gap-2">
-                    <input id="input-stopid" type="text" placeholder="Stop ID (例: 6E6EBC...)" class="w-full bg-white dark:bg-zinc-900 px-3 py-2 rounded-xl text-xs border border-gray-200 dark:border-zinc-800 focus:outline-none focus:border-black dark:focus:border-white mono">
-                    <input id="input-stopname" type="text" placeholder="站點名稱 (例: 日景樓)" class="w-full bg-white dark:bg-zinc-900 px-3 py-2 rounded-xl text-xs border border-gray-200 dark:border-zinc-800 focus:outline-none focus:border-black dark:focus:border-white">
-                </div>
-                <div class="flex gap-2">
-                    <input id="input-route" type="text" placeholder="路線 (例: 46X)" class="w-2/3 bg-white dark:bg-zinc-900 px-3 py-2 rounded-xl text-xs border border-gray-200 dark:border-zinc-800 focus:outline-none focus:border-black dark:focus:border-white mono uppercase">
-                    <button onclick="addCustomConfig()" class="w-1/3 bg-black dark:bg-white text-white dark:text-black font-semibold text-xs py-2 rounded-xl transition-opacity active:opacity-80">加入</button>
-                </div>
-            </div>
-
-            <div class="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-2">現有監控清單</div>
-            <div id="config-list-container" class="flex flex-col gap-2">
-                </div>
-            
-            <div class="mt-6 pt-4 border-t border-gray-100 dark:border-zinc-900 flex justify-between items-center text-xs text-gray-400">
-                <span>提示：可自由增刪站點與路線</span>
-                <button onclick="resetDefaultConfig()" class="text-red-500 hover:underline">重設預設值</button>
-            </div>
+    <!-- iOS Bottom Navigation Bar -->
+    <nav class="fixed bottom-0 left-0 right-0 z-50 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-t border-gray-100 dark:border-zinc-900 pb-safe">
+        <div class="max-w-md mx-auto px-6 h-16 flex items-center justify-around">
+            <button onclick="switchTab('eta')" id="nav-eta" class="flex flex-col items-center gap-1 text-black dark:text-white transition-opacity">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span class="text-[10px] font-medium">即時</span>
+            </button>
+            <button onclick="switchTab('finder')" id="nav-finder" class="flex flex-col items-center gap-1 text-gray-400 dark:text-zinc-500 transition-opacity">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <span class="text-[10px] font-medium">查站</span>
+            </button>
+            <button onclick="switchTab('config')" id="nav-config" class="flex flex-col items-center gap-1 text-gray-400 dark:text-zinc-500 transition-opacity">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                <span class="text-[10px] font-medium">設定</span>
+            </button>
         </div>
-    </div>
+    </nav>
 
+    <!-- JavaScript Application Logic -->
     <script>
-        // 預設監控清單
         const DEFAULT_CONFIG = [
             { id: '1', stopId: '6E6EBC9D1AF2DA52', stopName: '日景樓', route: '46X' },
             { id: '2', stopId: '81B719F7DC3F0FAD', stopName: '城門隧道轉車站', route: '46X' },
@@ -112,36 +141,51 @@
             { id: '5', stopId: 'C8276DF869656712', stopName: '城門隧道轉車站', route: '40X' }
         ];
 
-        // 從 LocalStorage 載入設定，若無則使用預設
         function loadConfig() {
             const saved = localStorage.getItem('kmb_transit_config');
             if (saved) {
-                try {
-                    return JSON.parse(saved);
-                } catch (e) {
-                    return DEFAULT_CONFIG;
-                }
+                try { return JSON.parse(saved); } catch (e) { return DEFAULT_CONFIG; }
             }
             return DEFAULT_CONFIG;
         }
 
         let userConfig = loadConfig();
         let monitorDataCache = null;
+        let currentTab = 'eta';
 
-        async function fetchBusETA(stopId, route) {
-            try {
-                const response = await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/${stopId}`);
-                const data = await response.json();
-                return data.data.filter(item => item.route === route);
-            } catch (error) {
-                console.error(`讀取站點 ${stopId} 路線 ${route} 失敗:`, error);
-                return [];
+        function switchTab(tabId) {
+            currentTab = tabId;
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`view-${tabId}`).classList.remove('hidden');
+
+            ['eta', 'finder', 'config'].forEach(t => {
+                const navBtn = document.getElementById(`nav-${t}`);
+                if (t === tabId) {
+                    navBtn.className = 'flex flex-col items-center gap-1 text-black dark:text-white transition-opacity';
+                } else {
+                    navBtn.className = 'flex flex-col items-center gap-1 text-gray-400 dark:text-zinc-500 transition-opacity';
+                }
+            });
+
+            const headerTitle = document.getElementById('header-title');
+            const configIconBtn = document.getElementById('btn-config-icon');
+
+            if (tabId === 'eta') {
+                headerTitle.innerText = '即時班次';
+                configIconBtn.style.display = 'flex';
+                fetchCounter = 0;
+                tick();
+            } else if (tabId === 'finder') {
+                headerTitle.innerText = '路線查站';
+                configIconBtn.style.display = 'none';
+            } else if (tabId === 'config') {
+                headerTitle.innerText = '監控設定';
+                configIconBtn.style.display = 'none';
+                renderConfigList();
             }
         }
 
         async function refreshDataFromAPI() {
-            // 根據 userConfig 內的 stopId 抓取所有資料
-            // 同一個 stopId 可以被多個 route 共用快取避免重複請求
             const stopIds = [...new Set(userConfig.map(c => c.stopId))];
             const stopDataMap = {};
 
@@ -151,40 +195,29 @@
                     const data = await response.json();
                     stopDataMap[stopId] = data.data || [];
                 } catch (err) {
-                    console.error(`讀取站點 ${stopId} 失敗:`, err);
                     stopDataMap[stopId] = [];
                 }
             }
 
-            // 組裝結構給渲染器使用
-            // 按照 stopName 分組
             const groupMap = {};
             userConfig.forEach(item => {
-                if (!groupMap[item.stopName]) {
-                    groupMap[item.stopName] = [];
-                }
+                if (!groupMap[item.stopName]) groupMap[item.stopName] = [];
                 const rawList = stopDataMap[item.stopId] || [];
                 const busData = rawList.filter(b => b.route === item.route);
-                groupMap[item.stopName].push({
-                    route: item.route,
-                    busData: busData
-                });
+                groupMap[item.stopName].push({ route: item.route, busData: busData, stopId: item.stopId });
             });
 
-            const newData = Object.keys(groupMap).map(stopName => ({
+            monitorDataCache = Object.keys(groupMap).map(stopName => ({
                 stopName: stopName,
                 routesData: groupMap[stopName]
             }));
-
-            monitorDataCache = newData;
         }
 
         function renderInterface() {
-            const appContainer = document.getElementById('app');
+            const appContainer = document.getElementById('eta-app-container');
             if (!monitorDataCache) return;
 
             let htmlTemplate = '';
-
             monitorDataCache.forEach(group => {
                 if (group.routesData && group.routesData.length > 0) {
                     htmlTemplate += `
@@ -200,7 +233,7 @@
                 }
             });
 
-            appContainer.innerHTML = htmlTemplate || '<div class="text-center py-20 text-gray-400 text-xs">沒有設定任何監控站點，請點選右上角設定。</div>';
+            appContainer.innerHTML = htmlTemplate || '<div class="text-center py-20 text-gray-400 text-xs">沒有設定任何監控站點，請前往設定加入。</div>';
         }
 
         function renderBusRows(routesData) {
@@ -211,7 +244,6 @@
 
                 if (busData && busData.length > 0) {
                     const destName = busData[0].dest_tc;
-
                     const seenTimes = new Set();
                     const uniqueBusData = [];
                     
@@ -234,9 +266,7 @@
 
                         let timeText = totalSeconds <= 0 ? "到站" : `${mins}分${secs.toString().padStart(2, '0')}秒`;
 
-                        return `<span class="mono text-xs text-gray-500 dark:text-zinc-400">
-                            ${timeText}
-                        </span>`;
+                        return `<span class="mono text-xs text-gray-500 dark:text-zinc-400">${timeText}</span>`;
                     });
 
                     const timesString = timeList.join('<span class="text-gray-300 dark:text-zinc-800 mx-2">/</span>');
@@ -247,9 +277,7 @@
                                 <span class="mono text-sm font-bold tracking-tight">${route}</span>
                                 <span class="text-xs text-gray-400 dark:text-zinc-500">${destName}</span>
                             </div>
-                            <div class="flex items-center">
-                                ${timesString}
-                            </div>
+                            <div class="flex items-center">${timesString}</div>
                         </div>
                     `;
                 } else {
@@ -264,23 +292,78 @@
             return html;
         }
 
-        // Config Modal Functions
-        function openConfigModal() {
-            renderConfigList();
-            const modal = document.getElementById('config-modal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+        // Search / Route Finder Logic
+        async function searchBusRoute() {
+            const routeQuery = document.getElementById('search-route-input').value.trim().toUpperCase();
+            const resultsContainer = document.getElementById('search-results');
+            if (!routeQuery) return;
+
+            resultsContainer.innerHTML = '<div class="text-center py-10 text-xs text-gray-400">搜尋中...</div>';
+
+            try {
+                // 1. Get bound directions for route
+                const res = await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/route/${routeQuery}`);
+                const routeData = await res.json();
+                
+                if (!routeData.data) {
+                    resultsContainer.innerHTML = '<div class="text-center py-10 text-xs text-gray-400">找不到此路線</div>';
+                    return;
+                }
+
+                // Usually Bound O or I
+                const bound = routeData.data.bound || 'O';
+                const serviceType = routeData.data.service_type || '1';
+
+                // 2. Get stops for route & bound
+                const stopsRes = await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/route-stop/${routeQuery}/${bound}/${serviceType}`);
+                const stopsData = await stopsRes.json();
+
+                if (!stopsData.data || stopsData.data.length === 0) {
+                    resultsContainer.innerHTML = '<div class="text-center py-10 text-xs text-gray-400">此路線暫無站點資料</div>';
+                    return;
+                }
+
+                // 3. Fetch stop details names
+                let html = `<div class="text-[11px] font-medium text-gray-400 dark:text-zinc-500 uppercase tracking-widest px-1">共 ${stopsData.data.length} 個站點 (點擊加入監控)</div><div class="flex flex-col divide-y divide-gray-100 dark:divide-zinc-900 border-t border-b border-gray-100 dark:border-zinc-900">`;
+
+                for (const item of stopsData.data) {
+                    const stopId = item.stop;
+                    // Get stop name
+                    const stopInfoRes = await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/stop/${stopId}`);
+                    const stopInfoData = await stopInfoRes.json();
+                    const stopName = stopInfoData.data ? stopInfoData.data.name_tc : stopId;
+
+                    html += `
+                        <div class="py-3.5 flex items-center justify-between">
+                            <div class="flex flex-col gap-0.5 pr-2">
+                                <span class="text-sm font-semibold tracking-tight">${stopName}</span>
+                                <span class="mono text-[10px] text-gray-400">${stopId}</span>
+                            </div>
+                            <button onclick="addFromSearch('${stopId}', '${stopName.replace(/'/g, "")}', '${routeQuery}')" class="bg-gray-100 dark:bg-zinc-900 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black font-semibold text-xs px-3 py-1.5 rounded-xl transition-colors">加入</button>
+                        </div>
+                    `;
+                }
+                html += `</div>`;
+                resultsContainer.innerHTML = html;
+
+            } catch (err) {
+                resultsContainer.innerHTML = '<div class="text-center py-10 text-xs text-red-500">搜尋失敗，請檢查路線編號</div>';
+            }
         }
 
-        function closeConfigModal() {
-            const modal = document.getElementById('config-modal');
-            modal.classList.remove('flex');
-            modal.classList.add('hidden');
-            // 立即重新抓取與渲染
-            fetchCounter = 0;
-            tick();
+        function addFromSearch(stopId, stopName, route) {
+            userConfig.push({
+                id: Date.now().toString(),
+                stopId,
+                stopName,
+                route
+            });
+            localStorage.setItem('kmb_transit_config', JSON.stringify(userConfig));
+            alert(`已成功將 ${stopName} (${route}) 加入監控！`);
+            switchTab('eta');
         }
 
+        // Config Management
         function renderConfigList() {
             const container = document.getElementById('config-list-container');
             let html = '';
@@ -311,16 +394,9 @@
                 return;
             }
 
-            userConfig.push({
-                id: Date.now().toString(),
-                stopId,
-                stopName,
-                route
-            });
-
+            userConfig.push({ id: Date.now().toString(), stopId, stopName, route });
             localStorage.setItem('kmb_transit_config', JSON.stringify(userConfig));
             
-            // 清空輸入框
             document.getElementById('input-stopid').value = '';
             document.getElementById('input-stopname').value = '';
             document.getElementById('input-route').value = '';
@@ -344,11 +420,13 @@
 
         let fetchCounter = 0;
         async function tick() {
+            if (currentTab !== 'eta') return;
             if (fetchCounter <= 0 || monitorDataCache === null) {
                 fetchCounter = 30; 
                 await refreshDataFromAPI();
             }
-            document.getElementById('sync-timer').innerText = `${fetchCounter}s`;
+            const timerEl = document.getElementById('sync-timer');
+            if (timerEl) timerEl.innerText = `${fetchCounter}s`;
             fetchCounter--;
             renderInterface();
         }
