@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Transit OS</title>
+    <title>Transit OS Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
@@ -31,7 +31,7 @@
         .animate-pulse-subtle {
             animation: pulse-subtle 1.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
-        /* Hide scrollbar for clean UI */
+        /* Hide scrollbar */
         .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
@@ -43,7 +43,6 @@
 </head>
 <body class="min-h-screen text-black dark:text-white pb-24 selection:bg-gray-200 dark:selection:zinc-800">
 
-    <!-- Minimal Header -->
     <header class="sticky top-0 z-40 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-gray-100 dark:border-zinc-900">
         <div class="max-w-md mx-auto px-5 h-14 flex items-center justify-between">
             <div class="flex items-center gap-2">
@@ -51,18 +50,19 @@
                 <span id="sync-timer" class="mono text-xs text-gray-400 dark:text-zinc-500 font-medium bg-gray-100 dark:bg-zinc-900 px-2 py-0.5 rounded-full">30s</span>
             </div>
             <div class="flex items-center gap-2">
-                <button onclick="switchTab('config')" id="btn-config-icon" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-zinc-900 flex items-center justify-center text-gray-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                <button onclick="triggerImmediateRefresh()" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-zinc-900 flex items-center justify-center text-gray-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                 </button>
             </div>
         </div>
     </header>
 
-    <!-- Views Container -->
     <main class="max-w-md mx-auto px-5 pt-6">
         
-        <!-- VIEW 1: ETA MONITOR -->
-        <div id="view-eta" class="view-section flex flex-col gap-8">
+        <div id="view-eta" class="view-section flex flex-col gap-6">
+            <div id="filter-chips" class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                <button onclick="setFilter('ALL')" class="filter-chip active-chip px-3 py-1.5 rounded-full text-xs font-semibold bg-black dark:bg-white text-white dark:text-black shrink-0 transition-all">全部</button>
+            </div>
             <div id="eta-app-container" class="flex flex-col gap-8">
                 <div class="flex flex-col items-center justify-center py-32 gap-3">
                     <div class="w-5 h-5 rounded-full border-2 border-gray-200 dark:border-zinc-800 border-t-black dark:border-t-white animate-spin"></div>
@@ -70,7 +70,6 @@
             </div>
         </div>
 
-        <!-- VIEW 2: MAP / FIND STOP -->
         <div id="view-finder" class="view-section hidden flex flex-col gap-6">
             <div class="flex flex-col gap-2">
                 <h2 class="text-xs font-semibold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">站點與路線搜尋</h2>
@@ -84,7 +83,18 @@
             </div>
         </div>
 
-        <!-- VIEW 3: CONFIGURATION -->
+        <div id="view-bookmarks" class="view-section hidden flex flex-col gap-6">
+            <div class="flex flex-col gap-2">
+                <h2 class="text-xs font-semibold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">常用行程快速組合</h2>
+                <div class="bg-gray-50 dark:bg-zinc-900/60 p-4 rounded-2xl border border-gray-200/60 dark:border-zinc-800 flex flex-col gap-3">
+                    <input id="bookmark-name" type="text" placeholder="組合名稱 (例: 返工路線)" class="w-full bg-white dark:bg-zinc-900 px-3 py-2.5 rounded-xl text-xs border border-gray-200 dark:border-zinc-800 focus:outline-none focus:border-black dark:focus:border-white">
+                    <button onclick="saveCurrentAsBookmark()" class="w-full bg-black dark:bg-white text-white dark:text-black font-semibold text-xs py-2.5 rounded-xl transition-opacity active:opacity-80">儲存目前清單為常用組合</button>
+                </div>
+            </div>
+            <div id="bookmarks-list" class="flex flex-col gap-3">
+                </div>
+        </div>
+
         <div id="view-config" class="view-section hidden flex flex-col gap-6">
             <div class="flex flex-col gap-2">
                 <h2 class="text-xs font-semibold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">新增監控</h2>
@@ -101,19 +111,26 @@
             </div>
 
             <div class="flex flex-col gap-2">
+                <h2 class="text-xs font-semibold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">資料備份與還原</h2>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="exportConfigData()" class="bg-gray-50 dark:bg-zinc-900 py-3 rounded-2xl text-xs font-semibold border border-gray-200/60 dark:border-zinc-800">匯出備份 JSON</button>
+                    <button onclick="document.getElementById('import-file').click()" class="bg-gray-50 dark:bg-zinc-900 py-3 rounded-2xl text-xs font-semibold border border-gray-200/60 dark:border-zinc-800">匯入還原 JSON</button>
+                    <input type="file" id="import-file" class="hidden" accept=".json" onchange="importConfigData(event)">
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-2">
                 <div class="flex items-center justify-between">
                     <h2 class="text-xs font-semibold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">現有監控清單</h2>
                     <button onclick="resetDefaultConfig()" class="text-xs text-red-500 hover:underline">重設預設</button>
                 </div>
                 <div id="config-list-container" class="flex flex-col gap-2">
-                    <!-- Config items -->
-                </div>
+                    </div>
             </div>
         </div>
 
     </main>
 
-    <!-- iOS Bottom Navigation Bar -->
     <nav class="fixed bottom-0 left-0 right-0 z-50 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-t border-gray-100 dark:border-zinc-900 pb-safe">
         <div class="max-w-md mx-auto px-6 h-16 flex items-center justify-around">
             <button onclick="switchTab('eta')" id="nav-eta" class="flex flex-col items-center gap-1 text-black dark:text-white transition-opacity">
@@ -124,6 +141,10 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 <span class="text-[10px] font-medium">查站</span>
             </button>
+            <button onclick="switchTab('bookmarks')" id="nav-bookmarks" class="flex flex-col items-center gap-1 text-gray-400 dark:text-zinc-500 transition-opacity">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
+                <span class="text-[10px] font-medium">組合</span>
+            </button>
             <button onclick="switchTab('config')" id="nav-config" class="flex flex-col items-center gap-1 text-gray-400 dark:text-zinc-500 transition-opacity">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                 <span class="text-[10px] font-medium">設定</span>
@@ -131,7 +152,6 @@
         </div>
     </nav>
 
-    <!-- JavaScript Application Logic -->
     <script>
         const DEFAULT_CONFIG = [
             { id: '1', stopId: '6E6EBC9D1AF2DA52', stopName: '日景樓', route: '46X' },
@@ -149,16 +169,26 @@
             return DEFAULT_CONFIG;
         }
 
+        function loadBookmarks() {
+            const saved = localStorage.getItem('kmb_transit_bookmarks');
+            if (saved) {
+                try { return JSON.parse(saved); } catch (e) { return []; }
+            }
+            return [];
+        }
+
         let userConfig = loadConfig();
+        let userBookmarks = loadBookmarks();
         let monitorDataCache = null;
         let currentTab = 'eta';
+        let currentFilterRoute = 'ALL';
 
         function switchTab(tabId) {
             currentTab = tabId;
             document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
             document.getElementById(`view-${tabId}`).classList.remove('hidden');
 
-            ['eta', 'finder', 'config'].forEach(t => {
+            ['eta', 'finder', 'bookmarks', 'config'].forEach(t => {
                 const navBtn = document.getElementById(`nav-${t}`);
                 if (t === tabId) {
                     navBtn.className = 'flex flex-col items-center gap-1 text-black dark:text-white transition-opacity';
@@ -168,21 +198,54 @@
             });
 
             const headerTitle = document.getElementById('header-title');
-            const configIconBtn = document.getElementById('btn-config-icon');
 
             if (tabId === 'eta') {
                 headerTitle.innerText = '即時班次';
-                configIconBtn.style.display = 'flex';
                 fetchCounter = 0;
                 tick();
             } else if (tabId === 'finder') {
                 headerTitle.innerText = '路線查站';
-                configIconBtn.style.display = 'none';
+            } else if (tabId === 'bookmarks') {
+                headerTitle.innerText = '常用組合';
+                renderBookmarksList();
             } else if (tabId === 'config') {
                 headerTitle.innerText = '監控設定';
-                configIconBtn.style.display = 'none';
                 renderConfigList();
             }
+        }
+
+        function triggerImmediateRefresh() {
+            fetchCounter = 0;
+            tick();
+        }
+
+        function setFilter(route) {
+            currentFilterRoute = route;
+            // Update chip styles
+            document.querySelectorAll('.filter-chip').forEach(btn => {
+                if (btn.innerText === route || (route === 'ALL' && btn.innerText === '全部')) {
+                    btn.className = 'filter-chip px-3 py-1.5 rounded-full text-xs font-semibold bg-black dark:bg-white text-white dark:text-black shrink-0 transition-all';
+                } else {
+                    btn.className = 'filter-chip px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-100 dark:bg-zinc-900 text-gray-600 dark:text-zinc-400 shrink-0 transition-all';
+                }
+            });
+            renderInterface();
+        }
+
+        function updateFilterChips() {
+            const chipsContainer = document.getElementById('filter-chips');
+            const routes = ['ALL', ...new Set(userConfig.map(c => c.route))];
+            
+            let html = '';
+            routes.forEach(r => {
+                const label = r === 'ALL' ? '全部' : r;
+                const isActive = currentFilterRoute === r;
+                const cls = isActive 
+                    ? 'filter-chip px-3 py-1.5 rounded-full text-xs font-semibold bg-black dark:bg-white text-white dark:text-black shrink-0 transition-all'
+                    : 'filter-chip px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-100 dark:bg-zinc-900 text-gray-600 dark:text-zinc-400 shrink-0 transition-all';
+                html += `<button onclick="setFilter('${r}')" class="${cls}">${label}</button>`;
+            });
+            chipsContainer.innerHTML = html;
         }
 
         async function refreshDataFromAPI() {
@@ -217,23 +280,30 @@
             const appContainer = document.getElementById('eta-app-container');
             if (!monitorDataCache) return;
 
+            updateFilterChips();
+
             let htmlTemplate = '';
             monitorDataCache.forEach(group => {
-                if (group.routesData && group.routesData.length > 0) {
+                // Filter routesData based on active chip filter
+                const filteredRoutes = currentFilterRoute === 'ALL' 
+                    ? group.routesData 
+                    : group.routesData.filter(r => r.route === currentFilterRoute);
+
+                if (filteredRoutes && filteredRoutes.length > 0) {
                     htmlTemplate += `
                         <div class="flex flex-col gap-2">
                             <div class="text-[11px] font-medium text-gray-400 dark:text-zinc-500 uppercase tracking-widest px-1">
                                 ${group.stopName}
                             </div>
                             <div class="flex flex-col divide-y divide-gray-100 dark:divide-zinc-900 border-t border-b border-gray-100 dark:border-zinc-900">
-                                ${renderBusRows(group.routesData)}
+                                ${renderBusRows(filteredRoutes)}
                             </div>
                         </div>
                     `;
                 }
             });
 
-            appContainer.innerHTML = htmlTemplate || '<div class="text-center py-20 text-gray-400 text-xs">沒有設定任何監控站點，請前往設定加入。</div>';
+            appContainer.innerHTML = htmlTemplate || '<div class="text-center py-20 text-gray-400 text-xs">此篩選條件下沒有監控資料。</div>';
         }
 
         function renderBusRows(routesData) {
@@ -301,7 +371,6 @@
             resultsContainer.innerHTML = '<div class="text-center py-10 text-xs text-gray-400">搜尋中...</div>';
 
             try {
-                // 1. Get bound directions for route
                 const res = await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/route/${routeQuery}`);
                 const routeData = await res.json();
                 
@@ -310,11 +379,9 @@
                     return;
                 }
 
-                // Usually Bound O or I
                 const bound = routeData.data.bound || 'O';
                 const serviceType = routeData.data.service_type || '1';
 
-                // 2. Get stops for route & bound
                 const stopsRes = await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/route-stop/${routeQuery}/${bound}/${serviceType}`);
                 const stopsData = await stopsRes.json();
 
@@ -323,12 +390,10 @@
                     return;
                 }
 
-                // 3. Fetch stop details names
                 let html = `<div class="text-[11px] font-medium text-gray-400 dark:text-zinc-500 uppercase tracking-widest px-1">共 ${stopsData.data.length} 個站點 (點擊加入監控)</div><div class="flex flex-col divide-y divide-gray-100 dark:divide-zinc-900 border-t border-b border-gray-100 dark:border-zinc-900">`;
 
                 for (const item of stopsData.data) {
                     const stopId = item.stop;
-                    // Get stop name
                     const stopInfoRes = await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/stop/${stopId}`);
                     const stopInfoData = await stopInfoRes.json();
                     const stopName = stopInfoData.data ? stopInfoData.data.name_tc : stopId;
@@ -352,18 +417,68 @@
         }
 
         function addFromSearch(stopId, stopName, route) {
-            userConfig.push({
-                id: Date.now().toString(),
-                stopId,
-                stopName,
-                route
-            });
+            userConfig.push({ id: Date.now().toString(), stopId, stopName, route });
             localStorage.setItem('kmb_transit_config', JSON.stringify(userConfig));
             alert(`已成功將 ${stopName} (${route}) 加入監控！`);
             switchTab('eta');
         }
 
-        // Config Management
+        // Bookmarks / Quick Trips Management
+        function saveCurrentAsBookmark() {
+            const name = document.getElementById('bookmark-name').value.trim();
+            if (!name) {
+                alert('請輸入組合名稱');
+                return;
+            }
+            userBookmarks.push({
+                id: Date.now().toString(),
+                name: name,
+                config: [...userConfig]
+            });
+            localStorage.setItem('kmb_transit_bookmarks', JSON.stringify(userBookmarks));
+            document.getElementById('bookmark-name').value = '';
+            renderBookmarksList();
+            alert('已成功儲存常用組合！');
+        }
+
+        function renderBookmarksList() {
+            const container = document.getElementById('bookmarks-list');
+            if (userBookmarks.length === 0) {
+                container.innerHTML = '<div class="text-center py-10 text-xs text-gray-400">尚無儲存的常用組合</div>';
+                return;
+            }
+            let html = '';
+            userBookmarks.forEach((bm, index) => {
+                html += `
+                    <div class="flex items-center justify-between bg-gray-50 dark:bg-zinc-900 px-4 py-3 rounded-2xl border border-gray-200/60 dark:border-zinc-800 text-xs">
+                        <div class="flex flex-col gap-1">
+                            <span class="font-bold text-sm">${bm.name}</span>
+                            <span class="text-gray-400">${bm.config.length} 個監控項目</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="loadBookmark(${index})" class="bg-black dark:bg-white text-white dark:text-black font-semibold px-3 py-1.5 rounded-xl">載入</button>
+                            <button onclick="removeBookmark(${index})" class="text-red-500 px-2 py-1.5">刪除</button>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function loadBookmark(index) {
+            userConfig = [...userBookmarks[index].config];
+            localStorage.setItem('kmb_transit_config', JSON.stringify(userConfig));
+            alert(`已成功切換至組合：${userBookmarks[index].name}`);
+            switchTab('eta');
+        }
+
+        function removeBookmark(index) {
+            userBookmarks.splice(index, 1);
+            localStorage.setItem('kmb_transit_bookmarks', JSON.stringify(userBookmarks));
+            renderBookmarksList();
+        }
+
+        // Config Management & Import/Export
         function renderConfigList() {
             const container = document.getElementById('config-list-container');
             let html = '';
@@ -415,6 +530,39 @@
                 userConfig = [...DEFAULT_CONFIG];
                 localStorage.setItem('kmb_transit_config', JSON.stringify(userConfig));
                 renderConfigList();
+            }
+        }
+
+        function exportConfigData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(userConfig, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `transit_config_${Date.now()}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importConfigData(event) {
+            const fileReader = new FileReader();
+            if (event.target.files[0]) {
+                fileReader.readAsText(event.target.files[0], "UTF-8");
+                fileReader.onload = (e) => {
+                    try {
+                        const imported = JSON.parse(e.target.result);
+                        if (Array.isArray(imported)) {
+                            userConfig = imported;
+                            localStorage.setItem('kmb_transit_config', JSON.stringify(userConfig));
+                            renderConfigList();
+                            alert('成功匯入並套用設定！');
+                            switchTab('eta');
+                        } else {
+                            alert('格式錯誤：無效的設定檔結構');
+                        }
+                    } catch (err) {
+                        alert('解析 JSON 檔案失敗');
+                    }
+                };
             }
         }
 
