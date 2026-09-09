@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Transit OS Pro - 長者友善進階版</title>
+    <title>Transit OS Pro - 極簡大字版</title>
     <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
@@ -26,7 +26,7 @@
         /* Elder / Large Font Mode Overrides */
         body.elder-mode {
             font-size: 1.25rem !important;
-            background-color: #fffde7 !important; /* Soft warm high-contrast background */
+            background-color: #fffde7 !important;
             color: #000000 !important;
         }
         @media (prefers-color-scheme: dark) {
@@ -50,24 +50,19 @@
 </head>
 <body id="app-body" class="min-h-screen text-black dark:text-white pb-28 selection:bg-gray-200 dark:selection:zinc-800">
 
-    <!-- Feature 7: Live Weather & Emergency Call Header Bar -->
+    <!-- Top Status Bar: Weather & Elder Mode Toggle -->
     <div class="bg-amber-400 dark:bg-amber-600 text-black dark:text-white px-4 py-1.5 text-xs font-bold flex items-center justify-between shadow-sm">
         <div id="weather-bar" class="flex items-center gap-2">
             <span>🌤️ 香港天氣載入中...</span>
         </div>
-        <div class="flex items-center gap-3">
-            <!-- Feature 9: Emergency Family Call -->
-            <button onclick="callFamily()" class="bg-red-600 text-white px-2.5 py-0.5 rounded-full text-xs font-bold animate-pulse hover:bg-red-700">
-                📞 呼叫家人
-            </button>
-            <!-- Feature 1: Elder Mode Toggle -->
-            <button onclick="toggleElderMode()" class="bg-black dark:bg-white text-white dark:text-black px-2 py-0.5 rounded-full text-xs font-bold">
-                👵 <span id="elder-mode-btn-text">長者大字</span>
+        <div>
+            <button onclick="toggleElderMode()" class="bg-black dark:bg-white text-white dark:text-black px-3 py-1 rounded-full text-xs font-bold">
+                👓 <span id="elder-mode-btn-text">大字模式</span>
             </button>
         </div>
     </div>
 
-    <!-- Feature 10: Traffic Notice / Disruption Alert Banner -->
+    <!-- Special Traffic Alert Banner -->
     <div id="traffic-alert-banner" class="hidden bg-red-100 dark:bg-red-950/80 border-b border-red-300 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-2 text-xs font-semibold flex items-center justify-between">
         <span id="traffic-alert-text">⚠️ 提示：部分路段交通繁忙，巴士班次可能有所延誤。</span>
         <button onclick="this.parentElement.classList.add('hidden')" class="text-red-500 font-bold text-sm px-1">✕</button>
@@ -80,7 +75,7 @@
                 <span id="sync-timer" class="mono text-xs text-gray-500 dark:text-zinc-400 font-bold bg-gray-100 dark:bg-zinc-800 px-2.5 py-1 rounded-full">30s</span>
             </div>
             <div class="flex items-center gap-2">
-                <!-- Feature 4: One-Tap Go Home Shortcut -->
+                <!-- One-Tap Go Home Shortcut -->
                 <button onclick="filterHomeRoute()" class="bg-green-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm">
                     🏠 一鍵返家
                 </button>
@@ -114,7 +109,7 @@
                     <input id="search-route-input" type="text" placeholder="輸入九巴路線 (例: 46X)" class="w-full bg-gray-100 dark:bg-zinc-900 px-4 py-3 rounded-2xl text-sm font-bold border border-gray-300 dark:border-zinc-700 focus:outline-none uppercase">
                     <button onclick="searchBusRoute()" class="bg-black dark:bg-white text-white dark:text-black font-bold text-xs px-5 rounded-2xl shrink-0">搜尋</button>
                 </div>
-                <!-- Feature 5: GPS Location Search -->
+                <!-- GPS Location Search -->
                 <button onclick="findNearbyStopsGPS()" class="w-full bg-blue-600 text-white font-bold text-xs py-3 rounded-2xl flex items-center justify-center gap-2 mt-1 shadow-sm">
                     📍 使用 GPS 定位搜尋附近巴士站
                 </button>
@@ -138,14 +133,6 @@
 
         <!-- Config View -->
         <div id="view-config" class="view-section hidden flex flex-col gap-6">
-            <div class="flex flex-col gap-2">
-                <h2 class="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase">緊急聯絡電話設定</h2>
-                <div class="bg-gray-50 dark:bg-zinc-900 p-4 rounded-2xl border border-gray-200 dark:border-zinc-800 flex gap-2">
-                    <input id="input-family-phone" type="tel" placeholder="輸入家人電話號碼" class="w-full bg-white dark:bg-zinc-800 px-3 py-2.5 rounded-xl text-xs font-bold border border-gray-300 dark:border-zinc-700">
-                    <button onclick="saveFamilyPhone()" class="bg-red-600 text-white font-bold text-xs px-4 rounded-xl shrink-0">儲存</button>
-                </div>
-            </div>
-
             <div class="flex flex-col gap-2">
                 <h2 class="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase">新增監控站點</h2>
                 <div class="bg-gray-50 dark:bg-zinc-900 p-4 rounded-2xl border border-gray-200 dark:border-zinc-800 flex flex-col gap-3">
@@ -212,19 +199,14 @@
 
         let userConfig = JSON.parse(localStorage.getItem('kmb_transit_config')) || DEFAULT_CONFIG;
         let userBookmarks = JSON.parse(localStorage.getItem('kmb_transit_bookmarks')) || [];
-        let familyPhone = localStorage.getItem('kmb_family_phone') || '';
         let isElderMode = localStorage.getItem('kmb_elder_mode') === 'true';
-        let activeAlarmMinutes = null;
 
         let monitorDataCache = null;
         let currentTab = 'eta';
         let currentFilterRoute = 'ALL';
 
-        // Initial setup
         if (isElderMode) document.body.classList.add('elder-mode');
-        if (familyPhone) document.getElementById('input-family-phone').value = familyPhone;
 
-        // Feature 1: Elder Mode Toggle
         function toggleElderMode() {
             isElderMode = !isElderMode;
             localStorage.setItem('kmb_elder_mode', isElderMode);
@@ -233,11 +215,10 @@
                 document.getElementById('elder-mode-btn-text').innerText = '標準字體';
             } else {
                 document.body.classList.remove('elder-mode');
-                document.getElementById('elder-mode-btn-text').innerText = '長者大字';
+                document.getElementById('elder-mode-btn-text').innerText = '大字模式';
             }
         }
 
-        // Feature 7: HKO Live Weather Fetcher
         async function fetchLiveWeather() {
             try {
                 const res = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc');
@@ -251,32 +232,11 @@
             }
         }
 
-        // Feature 9: Family Emergency Call
-        function saveFamilyPhone() {
-            const phone = document.getElementById('input-family-phone').value.trim();
-            if (!phone) return alert('請輸入有效電話號碼');
-            localStorage.setItem('kmb_family_phone', phone);
-            familyPhone = phone;
-            alert('緊急聯絡電話已更新！');
-        }
-
-        function callFamily() {
-            if (!familyPhone) {
-                alert('請先在「設定」頁面儲存家人電話號碼。');
-                switchTab('config');
-            } else {
-                window.location.href = `tel:${familyPhone}`;
-            }
-        }
-
-        // Feature 4: One-Tap Go Home Shortcut
         function filterHomeRoute() {
             switchTab('eta');
-            setFilter('46X'); // Defaults to home-bound line
-            alert('已為您切換至返家路線 (46X)');
+            setFilter('46X');
         }
 
-        // Feature 2: Cantonese Text-To-Speech
         function speakETA(route, dest, minText) {
             if (!('speechSynthesis' in window)) return alert('您的裝置不支援語音播報');
             window.speechSynthesis.cancel();
@@ -287,14 +247,12 @@
             window.speechSynthesis.speak(speech);
         }
 
-        // Feature 3: Arrival Alarm / Vibration
         function setBoardingAlarm(route, totalSeconds) {
             if (totalSeconds <= 0) return alert('巴士已到站');
             if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-            alert(`已設置 ${route} 號巴士到站提醒！當班次接近時將提醒您。`);
+            alert(`已設置 ${route} 號巴士到站提醒！`);
         }
 
-        // Feature 5: GPS Nearby Stops Finder
         function findNearbyStopsGPS() {
             const container = document.getElementById('search-results');
             container.innerHTML = '<div class="text-center py-10 text-xs font-bold text-gray-500">正在獲取 GPS 位置...</div>';
@@ -306,7 +264,6 @@
 
             navigator.geolocation.getCurrentPosition(async (pos) => {
                 container.innerHTML = '<div class="text-center py-10 text-xs font-bold text-gray-500">正在搜尋附近九巴車站...</div>';
-                // Simulated GPS stop lookup result based on HK region
                 setTimeout(() => {
                     container.innerHTML = `
                         <div class="text-xs font-bold text-gray-500 uppercase px-1">📍 附近的巴士站 (距離 < 300 米)</div>
@@ -485,14 +442,9 @@
                                 <div class="flex items-center gap-2">
                                     <span class="mono text-lg font-extrabold tracking-tight bg-black dark:bg-white text-white dark:text-black px-2 py-0.5 rounded-lg">${route}</span>
                                     <span class="text-xs font-bold text-gray-600 dark:text-zinc-400">往 ${destName}</span>
-                                    <!-- Feature 6 & 8: Senior $2 Fare & Wheelchair Access Badges -->
-                                    <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.5 rounded">長者 $2</span>
-                                    <span class="text-xs" title="低地台無障礙巴士">♿</span>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <!-- Feature 2: Voice Audio Announcement Button -->
                                     <button onclick="speakETA('${route}', '${destName}', '${firstMinsText}')" class="p-1.5 bg-gray-100 dark:bg-zinc-800 rounded-lg text-sm font-bold" title="語音讀出">🔊</button>
-                                    <!-- Feature 3: Alarm Countdown Button -->
                                     <button onclick="setBoardingAlarm('${route}', ${firstSecsVal})" class="p-1.5 bg-gray-100 dark:bg-zinc-800 rounded-lg text-sm font-bold" title="到站提醒">🔔</button>
                                 </div>
                             </div>
