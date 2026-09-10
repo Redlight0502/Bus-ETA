@@ -6,4 +6,30 @@ import 'vuetify/styles';
 import '@mdi/font/css/materialdesignicons.css';
 import App from './App.vue';
 import './style.css';
-createApp(App).use(createVuetify({ components, directives, theme: { defaultTheme: 'light', themes: { light: { colors: { primary: '#FFD138', background: '#F7F8FA', surface: '#FFFFFF' } } } }, defaults: { VBtn: { style: 'text-transform: none; letter-spacing: 0', rounded: 'lg', elevation: 0 } } })).mount('#app');
+createApp(App)
+  .use(
+    createVuetify({
+      components,
+      directives,
+      theme: {
+        defaultTheme: 'light',
+        themes: {
+          light: {
+            colors: {
+              primary: '#FFD138',
+              background: '#F7F8FA',
+              surface: '#FFFFFF',
+            },
+          },
+        },
+      },
+      defaults: {
+        VBtn: {
+          style: 'text-transform: none; letter-spacing: 0',
+          rounded: 'lg',
+          elevation: 0,
+        },
+      },
+    }),
+  )
+  .mount('#app');
