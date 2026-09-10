@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Transit OS Pro - 智能 5-ETA 班次推算版</title>
+    <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        :root { color-scheme: light dark; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -webkit-tap-highlight-color: transparent;
+            background-color: #ffffff;
+            transition: all 0.2s ease-in-out;
+        }
+        @media (prefers-color-scheme: dark) { body { background-color: #000000; } }
+        .mono { font-family: 'JetBrains Mono', -apple-system, monospace; }
+        
+        body.elder-mode {
+            font-size: 1.25rem !important;
+            background-color: #fffde7 !important;
+            color: #000000 !important;
+        }
+        @media (prefers-color-scheme: dark) {
+            body.elder-mode { background-color: #0a0a00 !important; color: #ffffff !important; }
+        }
+        body.elder-mode button { min-height: 52px !important; font-size: 1.1rem !important; font-weight: 700 !important; }
+        body.elder-mode .text-xs { font-size: 1rem !important; }
+        body.elder-mode .text-sm { font-size: 1.2rem !important; }
+        body.elder-mode .text-lg { font-size: 1.5rem !important; }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body id="app-body" class="min-h-screen text-black dark:text-white pb-28 selection:bg-gray-200 dark:selection:zinc-800">
+
+    <!-- Header Bar -->
+    <div class="bg-amber-400 dark:bg-amber-600 text-black dark:text-white px-4 py-1.5 text-xs font-bold flex items-center justify-between shadow-sm">
+        <div id="weather-bar" class="flex items-center gap-2">
+            <span>🌤️ 香港天氣載入中...</span>
+        </div>
+        <button onclick="toggleElderMode()" class="bg-black dark:bg-white text-white dark:text-black px-3 py-1 rounded-full text-xs font-bold">
+            👓 <span id="elder-mode-btn-text">大字模式</span>
+        </button>
+    </div>
+
+    <header class="sticky top-0 z-40 bg-white/90 dark:bg-black/90 backdrop-blur-md border-b border-gray-200 dark:border-zinc-800">
+        <div class="max-w-md mx-auto px-4 h-14 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <h1 id="header-title" class="text-base font-bold tracking-tight">智能 5-ETA 班次</h1>
+                <span id="sync-timer" class="mono text-xs text-gray-500 dark:text-zinc-400 font-bold bg-gray-100 dark:bg-zinc-800 px-2.5 py-1 rounded-full">30s</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="filterHomeRoute()" class="bg-green-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm">
+                    🏠 一鍵返家
+                </button>
+                <button onclick="triggerImmediateRefresh()" class="w-9 h-9 rounded-xl bg-gray-100 dark:bg-zinc-800 flex items-center justify-center text-gray-700 dark:text-zinc-300 font-bold hover:bg-gray-200">
+                    ↻
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto px-4 pt-4">
+        
+        <!-- ETA View -->
+        <div id="view-eta" class="view-section flex flex-col gap-4">
+            <div id="filter-chips" class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                <button onclick="setFilter('ALL')" class="filter-chip px-4 py-2 rounded-full text-xs font-bold bg-black dark:bg-white text-white dark:text-black shrink-0">全部</button>
+            </div>
+            <div id="eta-app-container" class="flex flex-col gap-6">
+                <div class="flex flex-col items-center justify-center py-20 gap-3">
+                    <div class="w-6 h-6 rounded-full border-2 border-gray-300 dark:border-zinc-700 border-t-black dark:border-t-white animate-spin"></div>
+                    <span class="text-xs font-bold text-gray-500">正在計算站間行車時間與班次推算...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Finder View -->
+        <div id="view-finder" class="view-section hidden flex flex-col gap-4">
+            <div class="flex flex-col gap-2">
+                <h2 class="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase">站點與路線搜尋</h2>
+                <div class="flex gap-2">
+                    <input id="search-route-input" type="text" placeholder="輸入九巴路線 (例: 46X)" class="w-full bg-gray-100 dark:bg-zinc-900 px-4 py-3 rounded-2xl text-sm font-bold border border-gray-300 dark:border-zinc-700 focus:outline-none uppercase">
+                    <button onclick="searchBusRoute()" class="bg-black dark:bg-white text-white dark:text-black font-bold text-xs px-5 rounded-2xl shrink-0">搜尋</button>
+                </div>
+                <button onclick="findNearbyStopsGPS()" class="w-full bg-blue-600 text-white font-bold text-xs py-3 rounded-2xl flex items-center justify-center gap-2 mt-1 shadow-sm">
+                    📍 使用 GPS 定位搜尋附近巴士站
+                </button>
+            </div>
+            <div id="search-results" class="flex flex-col gap-2">
+                <div class="text-center py-12 text-gray-400 text-xs font-bold">請輸入路線或點擊上方 GPS 尋找附近車站</div>
+            </div>
+        </div>
+
+        <!-- Config View -->
+        <div id="view-config" class="view-section hidden flex flex-col gap-6">
+            <div class="flex flex-col gap-2">
+                <h2 class="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase">新增監控站點</h2>
+                <div class="bg-gray-50 dark:bg-zinc-900 p-4 rounded-2xl border border-gray-200 dark:border-zinc-800 flex flex-col gap-3">
+                    <div class="grid grid-cols-2 gap-2">
+                        <input id="input-stopid" type="text" placeholder="Stop ID" class="w-full bg-white dark:bg-zinc-800 px-3 py-2.5 rounded-xl text-xs font-bold border border-gray-300 dark:border-zinc-700">
+                        <input id="input-stopname" type="text" placeholder="站點名稱 (例: 日景樓)" class="w-full bg-white dark:bg-zinc-800 px-3 py-2.5 rounded-xl text-xs font-bold border border-gray-300 dark:border-zinc-700">
+                    </div>
+                    <div class="flex gap-2">
+                        <input id="input-route" type="text" placeholder="路線 (例: 46X)" class="w-2/3 bg-white dark:bg-zinc-800 px-3 py-2.5 rounded-xl text-xs font-bold border border-gray-300 dark:border-zinc-700 uppercase">
+                        <button onclick="addCustomConfig()" class="w-1/3 bg-black dark:bg-white text-white dark:text-black font-bold text-xs py-2.5 rounded-xl">加入</button>
+                    </div>
+                </div>
+            </div>
+            <div class="flex flex-col gap-2">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase">現有監控清單</h2>
+                    <button onclick="resetDefaultConfig()" class="text-xs text-red-500 font-bold hover:underline">重設預設</button>
+                </div>
+                <div id="config-list-container" class="flex flex-col gap-2"></div>
+            </div>
+        </div>
+
+    </main>
+
+    <nav class="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-black/95 backdrop-blur-xl border-t border-gray-200 dark:border-zinc-800 pb-safe">
+        <div class="max-w-md mx-auto px-4 h-16 flex items-center justify-around">
+            <button onclick="switchTab('eta')" id="nav-eta" class="flex flex-col items-center gap-1 text-black dark:text-white">
+                <span class="text-lg">⏱️</span>
+                <span class="text-[11px] font-bold">即時</span>
+            </button>
+            <button onclick="switchTab('finder')" id="nav-finder" class="flex flex-col items-center gap-1 text-gray-400 dark:text-zinc-500">
+                <span class="text-lg">🔍</span>
+                <span class="text-[11px] font-bold">查站</span>
+            </button>
+            <button onclick="switchTab('config')" id="nav-config" class="flex flex-col items-center gap-1 text-gray-400 dark:text-zinc-500">
+                <span class="text-lg">⚙️</span>
+                <span class="text-[11px] font-bold">設定</span>
+            </button>
+        </div>
+    </nav>
+
+    <script>
+        const DEFAULT_CONFIG = [
+            { id: '1', stopId: '6E6EBC9D1AF2DA52', stopName: '日景樓', route: '46X' },
+            { id: '2', stopId: '81B719F7DC3F0FAD', stopName: '城門隧道轉車站', route: '46X' },
+            { id: '3', stopId: '9E8E99C5BB698AC2', stopName: '城門隧道轉車站', route: '48X' }
+        ];
+
+        let userConfig = JSON.parse(localStorage.getItem('kmb_transit_config')) || DEFAULT_CONFIG;
+        let isElderMode = localStorage.getItem('kmb_elder_mode') === 'true';
+        let monitorDataCache = null;
+        let currentTab = 'eta';
+        let currentFilterRoute = 'ALL';
+
+        if (isElderMode) document.body.classList.add('elder-mode');
+
+        function toggleElderMode() {
+            isElderMode = !isElderMode;
+            localStorage.setItem('kmb_elder_mode', isElderMode);
+            if (isElderMode) {
+                document.body.classList.add('elder-mode');
+                document.getElementById('elder-mode-btn-text').innerText = '標準字體';
+            } else {
+                document.body.classList.remove('elder-mode');
+                document.getElementById('elder-mode-btn-text').innerText = '大字模式';
+            }
+        }
+
+        async function fetchLiveWeather() {
+            try {
+                const res = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc');
+                const data = await res.json();
+                const temp = data.temperature.data[0].value;
+                document.getElementById('weather-bar').innerHTML = `<span>☀️ 香港 ${temp}°C</span>`;
+            } catch (e) {
+                document.getElementById('weather-bar').innerHTML = `<span>🌤️ 24°C</span>`;
+            }
+        }
+
+        function filterHomeRoute() {
+            switchTab('eta');
+            setFilter('46X');
+        }
+
+        function speakETA(route, dest, minText) {
+            if (!('speechSynthesis' in window)) return alert('您的裝置不支援語音播報');
+            window.speechSynthesis.cancel();
+            const speech = new SpeechSynthesisUtterance();
+            speech.text = `巴士 ${route} 號往 ${dest}，${minText}`;
+            speech.lang = 'zh-HK';
+            speech.rate = 0.9;
+            window.speechSynthesis.speak(speech);
+        }
+
+        function setBoardingAlarm(route, totalSeconds) {
+            if (totalSeconds <= 0) return alert('巴士已到站');
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+            alert(`已設置 ${route} 號巴士到站提醒！`);
+        }
+
+        // Feature: Headway & Segment Time Engine -> Calculates 5 ETAs
+        async function fetchCalculated5ETAs(stopId, route) {
+            try {
+                // 1. Fetch Target Stop ETA
+                const targetEtaRes = await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/${stopId}`);
+                const targetEtaData = await targetEtaRes.json();
+                const rawTargetEtas = (targetEtaData.data || []).filter(b => b.route === route);
+
+                // Extract unique valid live ETAs
+                const liveList = [];
+                const seenTimes = new Set();
+                let destTC = rawTargetEtas[0]?.dest_tc || '';
+
+                rawTargetEtas.forEach(item => {
+                    if (item.eta && !seenTimes.has(item.eta)) {
+                        seenTimes.add(item.eta);
+                        liveList.push({
+                            eta: new Date(item.eta),
+                            isProjected: false,
+                            dest: item.dest_tc
+                        });
+                    }
+                });
+
+                // 2. Fetch Route Stops to identify First Stop (Seq 1)
+                let calculatedHeadwaySecs = 600; // Default 10 min fallback
+                let segmentTravelTimeSecs = 0;   // Travel time from Stop 1 to target stop
+
+                const routeInfoRes = await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/route/${route}`);
+                const routeInfo = await routeInfoRes.json();
+
+                if (routeInfo.data) {
+                    const bound = routeInfo.data.bound || 'O';
+                    const serviceType = routeInfo.data.service_type || '1';
+
+                    const stopsListRes = await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/route-stop/${route}/${bound}/${serviceType}`);
+                    const stopsListData = await stopsListRes.json();
+
+                    if (stopsListData.data && stopsListData.data.length > 0) {
+                        const firstStopId = stopsListData.data[0].stop;
+
+                        // Fetch First Stop ETAs to deduce bus headway spacing (Frequency)
+                        const firstStopEtaRes = await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/${firstStopId}`);
+                        const firstStopEtaData = await firstStopEtaRes.json();
+                        const firstStopEtas = (firstStopEtaData.data || [])
+                            .filter(b => b.route === route && b.eta)
+                            .map(b => new Date(b.eta).getTime())
+                            .sort((a, b) => a - b);
+
+                        if (firstStopEtas.length >= 2) {
+                            const intervals = [];
+                            for (let i = 1; i < firstStopEtas.length; i++) {
+                                const diffSecs = (firstStopEtas[i] - firstStopEtas[i-1]) / 1000;
+                                if (diffSecs > 180 && diffSecs < 2400) intervals.push(diffSecs);
+                            }
+                            if (intervals.length > 0) {
+                                calculatedHeadwaySecs = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+                            }
+                        }
+
+                        // Estimate segment travel time (Stop 1 -> Target Stop)
+                        if (firstStopId === stopId) {
+                            segmentTravelTimeSecs = 0;
+                        } else if (liveList.length > 0 && firstStopEtas.length > 0) {
+                            const diff = (liveList[0].eta.getTime() - firstStopEtas[0]) / 1000;
+                            if (diff > 0 && diff < 7200) segmentTravelTimeSecs = diff;
+                        }
+                    }
+                }
+
+                // 3. Project future departures to construct guaranteed 5 ETAs
+                const full5ETAList = [...liveList];
+                const now = new Date();
+
+                while (full5ETAList.length < 5) {
+                    let lastKnownEta = full5ETAList.length > 0 
+                        ? full5ETAList[full5ETAList.length - 1].eta.getTime() 
+                        : now.getTime() + segmentTravelTimeSecs;
+
+                    let projectedNextEtaTime = lastKnownEta + (calculatedHeadwaySecs * 1000);
+                    
+                    full5ETAList.push({
+                        eta: new Date(projectedNextEtaTime),
+                        isProjected: true,
+                        dest: destTC || '目的地'
+                    });
+                }
+
+                return {
+                    route: route,
+                    dest: destTC || '目的地',
+                    headwayMins: Math.round(calculatedHeadwaySecs / 60),
+                    etas: full5ETAList.slice(0, 5)
+                };
+
+            } catch (err) {
+                return { route: route, dest: '', headwayMins: 10, etas: [] };
+            }
+        }
+
+        async function refreshDataFromAPI() {
+            const groupMap = {};
+            
+            for (const item of userConfig) {
+                if (!groupMap[item.stopName]) groupMap[item.stopName] = [];
+                const computedResult = await fetchCalculated5ETAs(item.stopId, item.route);
+                groupMap[item.stopName].push({
+                    route: item.route,
+                    stopId: item.stopId,
+                    computed: computedResult
+                });
+            }
+
+            monitorDataCache = Object.keys(groupMap).map(stopName => ({
+                stopName: stopName,
+                routesData: groupMap[stopName]
+            }));
+        }
+
+        function renderInterface() {
+            const appContainer = document.getElementById('eta-app-container');
+            if (!monitorDataCache) return;
+
+            updateFilterChips();
+
+            let htmlTemplate = '';
+            monitorDataCache.forEach(group => {
+                const filteredRoutes = currentFilterRoute === 'ALL' 
+                    ? group.routesData 
+                    : group.routesData.filter(r => r.route === currentFilterRoute);
+
+                if (filteredRoutes && filteredRoutes.length > 0) {
+                    htmlTemplate += `
+                        <div class="flex flex-col gap-2">
+                            <div class="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider px-1">
+                                📍 ${group.stopName}
+                            </div>
+                            <div class="flex flex-col divide-y divide-gray-200 dark:divide-zinc-800 border-y border-gray-200 dark:border-zinc-800">
+                                ${renderBusRows(filteredRoutes)}
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+
+            appContainer.innerHTML = htmlTemplate || '<div class="text-center py-20 text-gray-400 text-xs font-bold">此篩選條件下沒有監控資料。</div>';
+        }
+
+        function renderBusRows(routesData) {
+            let html = '';
+            for (const busItem of routesData) {
+                const route = busItem.route;
+                const computed = busItem.computed;
+                const etas = computed.etas || [];
+                const destName = computed.dest || '目的地';
+                const headwayMins = computed.headwayMins || 10;
+
+                if (etas.length > 0) {
+                    let firstMinsText = '';
+                    let firstSecsVal = 0;
+
+                    const timeDisplayList = etas.map((item, idx) => {
+                        const now = new Date();
+                        const totalSeconds = Math.floor((item.eta - now) / 1000);
+                        
+                        let mins = Math.floor(totalSeconds / 60);
+                        let secs = totalSeconds % 60;
+                        if (secs < 0) secs = 0;
+                        if (mins < 0) mins = 0;
+
+                        let timeText = totalSeconds <= 0 ? "到站" : `${mins}分${secs.toString().padStart(2, '0')}秒`;
+                        if (idx === 0) {
+                            firstMinsText = timeText;
+                            firstSecsVal = totalSeconds;
+                        }
+
+                        // Highlight live vs projected timetable ETAs
+                        const badgeClass = item.isProjected 
+                            ? 'bg-gray-100 dark:bg-zinc-800 text-gray-400 font-normal px-1 py-0.5 rounded text-[10px]' 
+                            : 'bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300 font-bold px-1 py-0.5 rounded text-[10px]';
+                        
+                        const label = item.isProjected ? '推算' : '即時';
+
+                        return `
+                            <div class="flex items-center gap-1">
+                                <span class="${badgeClass}">${label}</span>
+                                <span class="mono text-xs font-bold text-gray-800 dark:text-zinc-200">${timeText}</span>
+                            </div>
+                        `;
+                    });
+
+                    html += `
+                        <div class="py-4 flex flex-col gap-2">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="mono text-lg font-extrabold tracking-tight bg-black dark:bg-white text-white dark:text-black px-2 py-0.5 rounded-lg">${route}</span>
+                                    <span class="text-xs font-bold text-gray-600 dark:text-zinc-400">往 ${destName}</span>
+                                    <span class="text-[10px] bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 px-1.5 py-0.5 rounded font-bold">班距 ~${headwayMins}分</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button onclick="speakETA('${route}', '${destName}', '${firstMinsText}')" class="p-1.5 bg-gray-100 dark:bg-zinc-800 rounded-lg text-sm font-bold" title="語音讀出">🔊</button>
+                                    <button onclick="setBoardingAlarm('${route}', ${firstSecsVal})" class="p-1.5 bg-gray-100 dark:bg-zinc-800 rounded-lg text-sm font-bold" title="到站提醒">🔔</button>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1 border-t border-dashed border-gray-200 dark:border-zinc-800">
+                                ${timeDisplayList.join('')}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="py-3.5 flex items-center justify-between opacity-40">
+                            <span class="mono text-base font-bold">${route}</span>
+                            <span class="text-xs text-gray-500 font-bold">暫無班次</span>
+                        </div>
+                    `;
+                }
+            }
+            return html;
+        }
+
+        function updateFilterChips() {
+            const chipsContainer = document.getElementById('filter-chips');
+            const routes = ['ALL', ...new Set(userConfig.map(c => c.route))];
+            
+            let html = '';
+            routes.forEach(r => {
+                const label = r === 'ALL' ? '全部' : r;
+                const isActive = currentFilterRoute === r;
+                const cls = isActive 
+                    ? 'filter-chip px-4 py-2 rounded-full text-xs font-bold bg-black dark:bg-white text-white dark:text-black shrink-0'
+                    : 'filter-chip px-4 py-2 rounded-full text-xs font-bold bg-gray-200 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 shrink-0';
+                html += `<button onclick="setFilter('${r}')" class="${cls}">${label}</button>`;
+            });
+            chipsContainer.innerHTML = html;
+        }
+
+        function setFilter(route) {
+            currentFilterRoute = route;
+            updateFilterChips();
+            renderInterface();
+        }
+
+        function switchTab(tabId) {
+            currentTab = tabId;
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`view-${tabId}`).classList.remove('hidden');
+
+            ['eta', 'finder', 'config'].forEach(t => {
+                const navBtn = document.getElementById(`nav-${t}`);
+                if (navBtn) {
+                    navBtn.className = t === tabId 
+                        ? 'flex flex-col items-center gap-1 text-black dark:text-white font-bold' 
+                        : 'flex flex-col items-center gap-1 text-gray-400 dark:text-zinc-500';
+                }
+            });
+
+            const headerTitle = document.getElementById('header-title');
+            if (tabId === 'eta') { headerTitle.innerText = '智能 5-ETA 班次'; fetchCounter = 0; tick(); }
+            else if (tabId === 'finder') { headerTitle.innerText = '路線查站'; }
+            else if (tabId === 'config') { headerTitle.innerText = '監控設定'; renderConfigList(); }
+        }
+
+        function triggerImmediateRefresh() {
+            fetchCounter = 0;
+            tick();
+        }
+
+        function renderConfigList() {
+            const container = document.getElementById('config-list-container');
+            let html = '';
+            userConfig.forEach((item, index) => {
+                html += `
+                    <div class="flex items-center justify-between bg-gray-100 dark:bg-zinc-900 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-800 text-xs font-bold">
+                        <div class="flex flex-col">
+                            <div class="flex items-center gap-2">
+                                <span class="mono font-bold">${item.route}</span>
+                                <span class="text-gray-600 dark:text-zinc-400">${item.stopName}</span>
+                            </div>
+                            <span class="mono text-[10px] text-gray-400">${item.stopId}</span>
+                        </div>
+                        <button onclick="removeConfig(${index})" class="text-red-500 font-bold px-2 py-1">刪除</button>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function addCustomConfig() {
+            const stopId = document.getElementById('input-stopid').value.trim();
+            const stopName = document.getElementById('input-stopname').value.trim();
+            const route = document.getElementById('input-route').value.trim().toUpperCase();
+
+            if (!stopId || !stopName || !route) return alert('請完整填寫 Stop ID、站點名稱及路線');
+
+            userConfig.push({ id: Date.now().toString(), stopId, stopName, route });
+            localStorage.setItem('kmb_transit_config', JSON.stringify(userConfig));
+            
+            document.getElementById('input-stopid').value = '';
+            document.getElementById('input-stopname').value = '';
+            document.getElementById('input-route').value = '';
+
+            renderConfigList();
+        }
+
+        function removeConfig(index) {
+            userConfig.splice(index, 1);
+            localStorage.setItem('kmb_transit_config', JSON.stringify(userConfig));
+            renderConfigList();
+        }
+
+        function resetDefaultConfig() {
+            if (confirm('確定重設為預設監控清單嗎？')) {
+                userConfig = [...DEFAULT_CONFIG];
+                localStorage.setItem('kmb_transit_config', JSON.stringify(userConfig));
+                renderConfigList();
+            }
+        }
+
+        let fetchCounter = 0;
+        async function tick() {
+            if (currentTab !== 'eta') return;
+            if (fetchCounter <= 0 || monitorDataCache === null) {
+                fetchCounter = 30; 
+                await refreshDataFromAPI();
+            }
+            const timerEl = document.getElementById('sync-timer');
+            if (timerEl) timerEl.innerText = `${fetchCounter}s`;
+            fetchCounter--;
+            renderInterface();
+        }
+
+        async function init() {
+            fetchLiveWeather();
+            await tick();
+            setInterval(tick, 1000); 
+        }
+
+        init();
+    </script>
+</body>
+</html>
