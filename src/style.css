@@ -274,12 +274,6 @@ tbody tr:last-child td {
 .destination {
   font-weight: 600;
 }
-.direction {
-  display: block;
-  font-size: 0.62rem;
-  color: #8c9297;
-  margin-top: 6px;
-}
 .arrival-column {
   text-align: right;
 }

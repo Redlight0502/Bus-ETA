@@ -83,13 +83,9 @@
               ><small class="operator">{{ t('九巴', 'KMB') }}</small>
             </td>
             <td>
-              <span class="destination">{{
-                lang === 'tc' ? bus.dest_tc : bus.dest_en
-              }}</span
-              ><small class="direction"
-                >{{ t('往', 'Towards') }}
-                {{ lang === 'tc' ? bus.dest_en : bus.dest_tc }}</small
-              >
+              <span class="destination">{{ t('往 ', 'Towards ') }}{{
+                lang === 'tc' ? bus.dest_tc : bus.dest_en 
+              }}</span>
             </td>
             <td class="arrival-column">
               <div v-if="bus.times.length" class="etas">
