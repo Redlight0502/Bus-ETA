@@ -12,14 +12,21 @@
     <div>
       <button
         v-for="item in [
-          { id: 'live', icon: 'mdi-bus-clock', tc: '即時', en: 'Live' },
-          {
+          { id: 'live',
+            icon: 'mdi-bus-clock',
+            tc: '即時',
+            en: 'Live' 
+          }, {
+            id: 'quick',
+            icon: 'mdi-eye-outline',
+            tc: '一眼看清',
+            en: 'Quick',
+          }, {
             id: 'stops',
             icon: 'mdi-map-marker-outline',
             tc: '查站',
             en: 'Stops',
-          },
-          {
+          }, {
             id: 'settings',
             icon: 'mdi-tune-variant',
             tc: '設定',

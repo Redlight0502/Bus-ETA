@@ -2,6 +2,7 @@
   import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
   import Topbar from './components/Topbar.vue';
   import LiveComponent from './components/LiveComponent.vue';
+  import QuickComponent from './components/QuickComponent.vue';
   import StopsComponent from './components/StopsComponent.vue';
   import SettingsComponent from './components/SettingsComponent.vue';
   import ButtomMenu from './components/ButtomMenu.vue';
@@ -153,6 +154,19 @@
       </section>
       <LiveComponent
         v-if="page === 'live'"
+        v-model:query="query"
+        :lang="lang"
+        :routes="routes"
+        :selected="selected"
+        :loading="loading"
+        :error="error"
+        :updated="updated"
+        :now="now"
+        @change-stop="page = 'stops'"
+        @refresh="refresh"
+      />
+      <QuickComponent
+        v-if="page === 'quick'"
         v-model:query="query"
         :lang="lang"
         :routes="routes"
