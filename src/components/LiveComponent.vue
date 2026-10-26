@@ -105,7 +105,7 @@
                   v-for="(eta, index) in bus.times"
                   :key="eta"
                   :class="['eta', { first: index === 0 }]"
-                  ><strong>{{ formatEta(eta) }}{{t(' 分鐘', ' min')}}</strong></span>
+                  ><strong>{{ formatEta(eta) }}</strong></span>
               </div>
               <span v-else class="muted">{{
                 t('暫無預報', 'No estimate')
