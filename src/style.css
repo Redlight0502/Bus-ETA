@@ -288,6 +288,7 @@ tbody tr:last-child td {
 }
 .destination {
   font-weight: 600;
+  font-size: 20px;
 }
 .arrival-column {
   text-align: right;

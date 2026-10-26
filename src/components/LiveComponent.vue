@@ -9,7 +9,7 @@
     updated: { type: Date, default: null },
     now: { type: Number, required: true },
   });
-  const emit = defineEmits(['update:query', 'change-stop', 'refresh']);
+  const emit = defineEmits(['update:query', 'change-stop', 'refresh', 'search-click']);
   const t = (tc, en) => (props.lang === 'tc' ? tc : en);
   const name = (s) => (props.lang === 'tc' ? s.name_tc : s.name_en);
   
@@ -26,21 +26,17 @@
     
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
+
+  const formatEtaClock = (eta) => {
+    if (!eta) return '';
+    const date = new Date(eta);
+    const hours = String(date.getHours()).padStart(2, '0');
+    const mins = String(date.getMinutes()).padStart(2, '0');
+    return `@${hours}:${mins}`;
+  };
 </script>
 
 <template>
-  <v-text-field
-    :model-value="query"
-    @update:model-value="emit('update:query', $event || '')"
-    class="search"
-    :label="t('搜尋路線或目的地', 'Search route or destination')"
-    prepend-inner-icon="mdi-magnify"
-    variant="solo"
-    flat
-    hide-details
-    clearable
-    @click:clear="emit('update:query', '')"
-  />
   <div class="section-heading">
     <h2>
       {{ t('即時到站', 'Live arrivals')
@@ -105,11 +101,12 @@
                   v-for="(eta, index) in bus.times"
                   :key="eta"
                   :class="['eta', { first: index === 0 }]"
-                  ><strong>{{ formatEta(eta) }}</strong></span>
+                >
+                  <strong>{{ formatEta(eta) }}</strong>
+                  <small class="eta-clock">{{ formatEtaClock(eta) }}</small>
+                </span>
               </div>
-              <span v-else class="muted">{{
-                t('暫無預報', 'No estimate')
-              }}</span>
+              <span v-else class="muted">{{ t('暫無預報', 'No estimate') }}</span>
             </td>
           </tr>
         </tbody>
@@ -163,3 +160,24 @@
     >
   </div>
 </template>
+
+<style scoped>
+/* Added/refined styling for the dual countdown & clock layout */
+.eta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.eta-clock {
+  font-size: 0.65rem;
+  color: #7b8187;
+  font-weight: 500;
+}
+
+.eta.first .eta-clock {
+  color: #5a6268;
+  font-weight: 600;
+}
+</style>
