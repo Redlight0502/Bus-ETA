@@ -199,6 +199,21 @@ h1 {
   background: white;
   overflow: hidden;
 }
+.quicklook-container {
+  display: flex;
+  margin-bottom: 16px;
+}
+
+/* 1/5th (20%) width with custom color */
+.custom-search-btn {
+  flex: 0 0 20%;
+  max-width: 20%;
+  background-color: #ff5722 !important; /* Accent color */
+  color: #ffffff !important;
+  font-weight: bold;
+  text-transform: none;
+  border-radius: 8px;
+}
 .stop-heading {
   padding: 22px 25px;
   display: flex;

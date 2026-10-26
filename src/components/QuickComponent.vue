@@ -17,18 +17,16 @@
 </script>
 
 <template>
-  <v-text-field
-    :model-value="query"
-    @update:model-value="emit('update:query', $event || '')"
-    class="search"
-    :label="t('搜尋路線或目的地', 'Search route or destination')"
-    prepend-inner-icon="mdi-magnify"
-    variant="solo"
-    flat
-    hide-details
-    clearable
-    @click:clear="emit('update:query', '')"
-  />
+  <div class="quicklook-container">
+    <v-btn
+      class="custom-search-btn"
+      prepend-icon="mdi-magnify"
+      variant="flat"
+      @click="emit('search-click')"
+    >
+      {{ t('上學', 'School') }}
+    </v-btn>
+  </div>
   <div class="section-heading">
     <h2>
       {{ t('即時到站', 'Live arrivals')
@@ -39,21 +37,6 @@
     </div>
   </div>
   <section class="results-panel">
-    <div class="stop-heading">
-      <div class="stop-label">
-        <span class="stop-icon"><v-icon>mdi-map-marker-outline</v-icon></span>
-        <div>
-          <small>{{ t('目前車站', 'CURRENT STOP') }}</small>
-          <h3>{{ name(selected) }}</h3>
-        </div>
-      </div>
-      <v-btn
-        variant="text"
-        append-icon="mdi-arrow-right"
-        @click="emit('change-stop')"
-        >{{ t('更改車站', 'Change stop') }}</v-btn
-      >
-    </div>
     <v-progress-linear v-if="loading" indeterminate color="primary" />
     <v-alert v-if="error" type="warning" variant="tonal" class="ma-4"
       >{{
