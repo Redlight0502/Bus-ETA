@@ -12,8 +12,20 @@
   const emit = defineEmits(['update:query', 'change-stop', 'refresh']);
   const t = (tc, en) => (props.lang === 'tc' ? tc : en);
   const name = (s) => (props.lang === 'tc' ? s.name_tc : s.name_en);
-  const minutes = (eta) =>
-    Math.max(0, Math.ceil((Date.parse(eta) - props.now) / 60000));
+  
+  const formatEta = (eta) => {
+    const diffMs = Math.max(0, Date.parse(eta) - props.now);
+    const totalSeconds = Math.floor(diffMs / 1000);
+    
+    if (totalSeconds <= 0) {
+      return t('即將', 'Due');
+    }
+    
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
 </script>
 
 <template>
@@ -93,13 +105,7 @@
                   v-for="(eta, index) in bus.times"
                   :key="eta"
                   :class="['eta', { first: index === 0 }]"
-                  ><strong>{{
-                    minutes(eta) === 0 ? t('即將', 'Due') : minutes(eta)
-                  }}</strong
-                  ><small v-if="minutes(eta) > 0">{{
-                    t('分鐘', 'min')
-                  }}</small></span
-                >
+                  ><strong>{{ formatEta(eta) }}{{t(' 分鐘', ' min')}}</strong></span>
               </div>
               <span v-else class="muted">{{
                 t('暫無預報', 'No estimate')
